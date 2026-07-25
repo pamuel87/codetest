@@ -1,623 +1,19 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>탐구실험 | 저항과 축전기의 직·병렬 회로 직접 구성 및 소비 전력 탐구</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Notion-like clean icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Inter & Noto Sans KR) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        notion: {
-                            bg: '#FFFFFF',
-                            darkBg: '#191919',
-                            sidebar: '#F7F6F3',
-                            sidebarDark: '#202020',
-                            card: '#FBFBFA',
-                            cardDark: '#2F2F2F',
-                            border: '#E9E9E7',
-                            borderDark: '#373737',
-                            hover: '#EFEFED',
-                            hoverDark: '#2A2A2A',
-                            text: '#37352F',
-                            textDark: '#D4D4D4',
-                            muted: '#787774',
-                            mutedDark: '#9B9B9B',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['"Noto Sans KR"', 'Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: 'Noto Sans KR', 'Inter', sans-serif;
-            color: #37352F;
-            background-color: #FFFFFF;
-        }
-
-        .dark body {
-            color: #D4D4D4;
-            background-color: #191919;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #d3d1cb;
-            border-radius: 3px;
-        }
-        .dark ::-webkit-scrollbar-thumb {
-            background: #424242;
-        }
-
-        /* Callout Box Styling */
-        .notion-callout {
-            background-color: #F1F1EF;
-            border-radius: 6px;
-            padding: 16px;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-        .dark .notion-callout {
-            background-color: #252525;
-        }
-
-        /* Notion Tag Styles */
-        .notion-tag {
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Toggle Block Transition */
-        .toggle-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        .toggle-content.open {
-            max-height: 1000px;
-        }
-
-        /* Canvas for Circuit Animation */
-        #circuitCanvas {
-            background: #0F172A;
-            border-radius: 8px;
-            cursor: crosshair;
-        }
-
-        .tool-btn {
-            transition: all 0.15s ease-in-out;
-        }
-        .tool-btn.active {
-            background-color: #F59E0B;
-            color: #FFFFFF;
-            border-color: #D97706;
-            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col md:flex-row transition-colors duration-200">
-
-    <!-- Mobile Header Bar -->
-    <div class="md:hidden flex items-center justify-between p-3 border-b border-notion-border dark:border-notion-borderDark bg-notion-sidebar dark:bg-notion-sidebarDark sticky top-0 z-50">
-        <div class="flex items-center space-x-2">
-            <button id="mobileMenuBtn" class="p-1.5 rounded hover:bg-notion-hover dark:hover:bg-notion-hoverDark text-notion-text dark:text-notion-textDark">
-                <i class="fa-solid fa-bars text-lg"></i>
-            </button>
-            <span class="font-semibold text-sm flex items-center gap-1.5 truncate">
-                <span>⚡</span> 자유 구성 회로 워크스페이스
-            </span>
-        </div>
-        <button id="darkModeToggleMobile" class="p-1.5 rounded hover:bg-notion-hover dark:hover:bg-notion-hoverDark text-stone-600 dark:text-stone-300">
-            <i class="fa-regular fa-moon dark:hidden"></i>
-            <i class="fa-regular fa-sun hidden dark:inline"></i>
-        </button>
-    </div>
-
-    <!-- Notion Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-notion-sidebar dark:bg-notion-sidebarDark border-r border-notion-border dark:border-notion-borderDark flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out md:static md:inset-auto md:min-h-screen">
-        <!-- Workspace Header -->
-        <div class="p-3 border-b border-notion-border dark:border-notion-borderDark flex items-center justify-between">
-            <div class="flex items-center space-x-2 truncate">
-                <div class="w-6 h-6 rounded bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
-                    Phy
-                </div>
-                <span class="font-semibold text-sm truncate text-stone-800 dark:text-stone-200">
-                    고1 통합과학 실험실
-                </span>
-            </div>
-            <button id="darkModeToggleDesktop" class="hidden md:block p-1.5 rounded hover:bg-notion-hover dark:hover:bg-notion-hoverDark text-stone-500 dark:text-stone-400">
-                <i class="fa-regular fa-moon dark:hidden"></i>
-                <i class="fa-regular fa-sun hidden dark:inline"></i>
-            </button>
-        </div>
-
-        <!-- Quick Search -->
-        <div class="px-3 py-2">
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-stone-400"></i>
-                <input type="text" id="quickSearch" placeholder="페이지/자료 검색..." class="w-full text-xs pl-8 pr-3 py-1.5 rounded bg-stone-200/60 dark:bg-stone-800 border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-700 dark:text-stone-200">
-            </div>
-        </div>
-
-        <!-- Navigation Menu -->
-        <nav class="flex-1 px-2 py-2 space-y-1 text-xs text-stone-600 dark:text-stone-300 overflow-y-auto">
-            <div class="px-2 py-1 text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">
-                MAIN NAVIGATION
-            </div>
-
-            <button onclick="switchTab('main')" class="nav-btn active w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left" data-tab="main">
-                <span class="text-sm">🏠</span>
-                <span class="font-medium text-stone-800 dark:text-stone-200 truncate">메인 (소개 & 공지)</span>
-            </button>
-
-            <button onclick="switchTab('guide')" class="nav-btn w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left" data-tab="guide">
-                <span class="text-sm">📌</span>
-                <span class="truncate">탐구 안내 & 평가기준</span>
-            </button>
-
-            <button onclick="switchTab('simulator')" class="nav-btn w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left" data-tab="simulator">
-                <span class="text-sm">⚡</span>
-                <span class="font-medium text-amber-600 dark:text-amber-400 truncate">직접 구성 회로 시뮬레이터</span>
-                <span class="ml-auto text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">PRO</span>
-            </button>
-
-            <button onclick="switchTab('steps')" class="nav-btn w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left" data-tab="steps">
-                <span class="text-sm">🔬</span>
-                <span class="truncate">단계별 탐구 가이드</span>
-            </button>
-
-            <button onclick="switchTab('downloads')" class="nav-btn w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left" data-tab="downloads">
-                <span class="text-sm">📁</span>
-                <span class="truncate">학습 자료실 및 서식</span>
-            </button>
-
+<!-- ... existing code ... -->
             <button onclick="switchTab('board')" class="nav-btn w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left" data-tab="board">
                 <span class="text-sm">📝</span>
                 <span class="truncate">과제 제출 & Q&A 게시판</span>
             </button>
 
+            <button onclick="switchTab('teacher')" class="nav-btn w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-notion-hover dark:hover:bg-notion-hoverDark transition-colors text-left text-indigo-600 dark:text-indigo-400 font-semibold" data-tab="teacher">
+                <span class="text-sm">📊</span>
+                <span class="truncate">교사 대시보드 (참여 현황)</span>
+                <span class="ml-auto text-[10px] bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold">TEACHER</span>
+            </button>
+
             <div class="pt-4 px-2 py-1 text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">
                 EXPLORATION STEPS
             </div>
-            <div class="pl-3 space-y-1">
-                <button onclick="switchTab('steps'); selectStep(1);" class="w-full flex items-center space-x-2 px-2 py-1 rounded text-[11px] text-stone-500 dark:text-stone-400 hover:bg-notion-hover dark:hover:bg-notion-hoverDark truncate">
-                    <span>1단계</span> <span class="truncate">직렬 회로 구성하기</span>
-                </button>
-                <button onclick="switchTab('steps'); selectStep(2);" class="w-full flex items-center space-x-2 px-2 py-1 rounded text-[11px] text-stone-500 dark:text-stone-400 hover:bg-notion-hover dark:hover:bg-notion-hoverDark truncate">
-                    <span>2단계</span> <span class="truncate">병렬 회로 구성하기</span>
-                </button>
-                <button onclick="switchTab('steps'); selectStep(3);" class="w-full flex items-center space-x-2 px-2 py-1 rounded text-[11px] text-stone-500 dark:text-stone-400 hover:bg-notion-hover dark:hover:bg-notion-hoverDark truncate">
-                    <span>3단계</span> <span class="truncate">직·병렬 혼합회로 & 축전기</span>
-                </button>
-                <button onclick="switchTab('steps'); selectStep(4);" class="w-full flex items-center space-x-2 px-2 py-1 rounded text-[11px] text-stone-500 dark:text-stone-400 hover:bg-notion-hover dark:hover:bg-notion-hoverDark truncate">
-                    <span>4단계</span> <span class="truncate">결론 도출 및 보고서</span>
-                </button>
-            </div>
-        </nav>
-
-        <!-- Sidebar Footer -->
-        <div class="p-3 border-t border-notion-border dark:border-notion-borderDark text-[11px] text-stone-400 flex flex-col gap-1">
-            <div class="flex items-center justify-between">
-                <span>담당 교사: 과학과 김선생</span>
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            </div>
-            <span>2026학년도 1학기 물리 탐구</span>
-        </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 min-w-0 overflow-y-auto">
-        <!-- Notion Breadcrumb Header -->
-        <div class="px-6 py-3 border-b border-notion-border dark:border-notion-borderDark text-xs text-stone-500 flex items-center space-x-2 bg-white/80 dark:bg-notion-darkBg/80 backdrop-blur sticky top-0 z-30">
-            <span class="hover:underline cursor-pointer" onclick="switchTab('main')">고등학교 1학년 통합과학</span>
-            <span>/</span>
-            <span class="hover:underline cursor-pointer" onclick="switchTab('main')">물리 영역 탐구</span>
-            <span>/</span>
-            <span id="currentBreadcrumb" class="text-stone-800 dark:text-stone-200 font-medium">메인 페이지</span>
-        </div>
-
-        <!-- Notion Cover Banner -->
-        <div class="h-36 md:h-48 w-full bg-gradient-to-r from-slate-800 via-amber-900 to-indigo-950 relative">
-            <div class="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
-            <div class="absolute bottom-2 right-4 text-xs text-white/60 font-mono">Interactive Circuit Builder v3.0</div>
-        </div>
-
-        <!-- Page Header Container -->
-        <div class="max-w-5xl mx-auto px-6 relative pb-12">
-            <!-- Large Page Icon -->
-            <div class="text-5xl md:text-6xl -mt-8 md:-mt-10 mb-4 inline-block bg-white dark:bg-notion-darkBg p-1 rounded-xl shadow-sm border border-stone-100 dark:border-stone-800">
-                <span id="pageEmoji">⚡</span>
-            </div>
-
-            <!-- Title & Metadata -->
-            <h1 id="pageTitle" class="text-2xl md:text-3xl font-bold text-stone-900 dark:text-stone-100 mb-4 tracking-tight">
-                학생 직접 구성 회로: 저항·축전기·전구의 직렬·병렬·혼합 연결과 소비 전력 탐구
-            </h1>
-
-            <!-- Notion Database Metadata Card -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 py-3 px-4 bg-notion-card dark:bg-notion-cardDark rounded-lg border border-notion-border dark:border-notion-borderDark text-xs mb-8">
-                <div class="flex items-center space-x-2 text-stone-500">
-                    <i class="fa-regular fa-user w-4"></i>
-                    <span>대상 학년:</span>
-                    <span class="notion-tag bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">고등학교 1학년</span>
-                </div>
-                <div class="flex items-center space-x-2 text-stone-500">
-                    <i class="fa-regular fa-calendar w-4"></i>
-                    <span>탐구 기간:</span>
-                    <span class="text-stone-800 dark:text-stone-200 font-medium">4월 1일 ~ 4월 20일</span>
-                </div>
-                <div class="flex items-center space-x-2 text-stone-500">
-                    <i class="fa-solid fa-flask w-4"></i>
-                    <span>실험 모드:</span>
-                    <span class="notion-tag bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">자유 구성 모드</span>
-                </div>
-                <div class="flex items-center space-x-2 text-stone-500">
-                    <i class="fa-regular fa-circle-check w-4"></i>
-                    <span>과제 마감:</span>
-                    <span class="notion-tag bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200">D-3 마감 임박</span>
-                </div>
-            </div>
-
-            <!-- TAB 1: MAIN PAGE -->
-            <section id="tab-main" class="tab-content space-y-6">
-                <div class="notion-callout">
-                    <span class="text-2xl">💡</span>
-                    <div class="text-xs md:text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
-                        <strong class="font-semibold block mb-1 text-stone-900 dark:text-stone-100">학생 직접 구성 회로 탐구실에 오신 것을 환영합니다!</strong>
-                        본 워크스페이스에서는 학생들이 직접 **저항, 축전기, 건전지, 전구, 전선** 요소를 그리드 상에 마우스 클릭 및 드래그하여 직렬, 병렬 및 직·병렬 혼합 회로를 설계할 수 있습니다. 전하의 흐름과 전구의 밝기, 축전기의 충전 특성을 자유롭게 관찰해보세요!
-                    </div>
-                </div>
-
-                <!-- Feature Highlights Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div class="p-3.5 bg-white dark:bg-notion-cardDark border border-notion-border dark:border-notion-borderDark rounded-lg space-y-1.5">
-                        <div class="text-lg">🔌</div>
-                        <h3 class="font-bold text-xs text-stone-800 dark:text-stone-200">자유로운 회로 직접 설계</h3>
-                        <p class="text-[11px] text-stone-500">전원, 저항, 전구, 축전기, 전선을 마음대로 배치하여 나만의 circuit을 만듭니다.</p>
-                    </div>
-                    <div class="p-3.5 bg-white dark:bg-notion-cardDark border border-notion-border dark:border-notion-borderDark rounded-lg space-y-1.5">
-                        <div class="text-lg">⚡</div>
-                        <h3 class="font-bold text-xs text-stone-800 dark:text-stone-200">직/병렬/혼합 회로 해석</h3>
-                        <p class="text-[11px] text-stone-500">복잡한 직·병렬 혼합 회로에서도 실시간 전류, 전압, 소비 전력을 자동으로 계산해줍니다.</p>
-                    </div>
-                    <div class="p-3.5 bg-white dark:bg-notion-cardDark border border-notion-border dark:border-notion-borderDark rounded-lg space-y-1.5">
-                        <div class="text-lg">🔋</div>
-                        <h3 class="font-bold text-xs text-stone-800 dark:text-stone-200">축전기(Capacitor) 충전 특성</h3>
-                        <p class="text-[11px] text-stone-500">직류 전원에 접속된 축전기의 과도 충전과 정상 상태에서의 전하 축적 효과를 확인합니다.</p>
-                    </div>
-                </div>
-
-                <!-- Quick Start Button -->
-                <div class="pt-2">
-                    <button onclick="switchTab('simulator')" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-lg shadow-sm transition-all flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-play"></i> 회로 직접 구성 시뮬레이터 시작하기
-                    </button>
-                </div>
-            </section>
-
-            <!-- TAB 2: GUIDE -->
-            <section id="tab-guide" class="tab-content hidden space-y-6">
-                <div class="border-b border-notion-border dark:border-notion-borderDark pb-2">
-                    <h2 class="text-xl font-bold flex items-center gap-2">
-                        <span>📋</span> 탐구 개요 및 평가 기준
-                    </h2>
-                    <p class="text-xs text-stone-500 mt-1">회로 구성 요소의 역할 및 수행평가 채점 루브릭 안내입니다.</p>
-                </div>
-
-                <div class="notion-callout">
-                    <span class="text-2xl">🎯</span>
-                    <div class="text-xs md:text-sm space-y-2">
-                        <span class="font-bold text-stone-900 dark:text-stone-100 block">회로 구성요소 학습목표</span>
-                        <ul class="list-disc list-inside space-y-1 text-stone-600 dark:text-stone-300">
-                            <li><strong>직류전원(건전지)</strong>: 회로에 전위차($V$)를 제공하여 전하 흐름을 유도합니다.</li>
-                            <li><strong>저항 및 전구</strong>: 전류 흐름을 방해하며 전기에너지를 열과 빛 에너지($P=VI$)로 전환합니다.</li>
-                            <li><strong>축전기(Capacitor)</strong>: 전하를 저장($Q=CV$)하며, 완전 충전 후에는 직류 회로에서 전류를 차단하는 특성을 이해합니다.</li>
-                            <li><strong>직·병렬 혼합회로</strong>: 등가 저항 계산 및 각 가지별 전류 분배 법칙을 구명합니다.</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <!-- -------------------------------------------------------------------------------- -->
-            <!-- TAB 3: INTERACTIVE CIRCUIT BUILDER SIMULATOR -->
-            <!-- -------------------------------------------------------------------------------- -->
-            <section id="tab-simulator" class="tab-content hidden space-y-4">
-                <!-- Header & Preset Bar -->
-                <div class="border-b border-notion-border dark:border-notion-borderDark pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-lg font-bold flex items-center gap-2">
-                            <span>⚡</span> 학생 직접 구성 회로 시뮬레이터
-                        </h2>
-                        <p class="text-xs text-stone-500">부품을 선택하여 격자에 배치하거나 아래 프리셋을 클릭하여 탐구를 시작하세요.</p>
-                    </div>
-
-                    <!-- Preset Quick Loaders -->
-                    <div class="flex flex-wrap gap-1.5 text-xs">
-                        <button onclick="loadPreset('series')" class="px-2.5 py-1 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 rounded border border-stone-300 dark:border-stone-700 font-medium">
-                            🔌 직렬 프리셋
-                        </button>
-                        <button onclick="loadPreset('parallel')" class="px-2.5 py-1 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 rounded border border-stone-300 dark:border-stone-700 font-medium">
-                            ⚡ 병렬 프리셋
-                        </button>
-                        <button onclick="loadPreset('mixed')" class="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 rounded border border-amber-300 font-bold">
-                            🔀 직·병렬 혼합
-                        </button>
-                        <button onclick="loadPreset('rc')" class="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 rounded border border-blue-300 font-bold">
-                            🔋 축전기(RC) 회로
-                        </button>
-                        <button onclick="clearCircuit()" class="px-2.5 py-1 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded border border-rose-200 font-medium">
-                            🗑️ 전체 지우기
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Component Palette Toolbar -->
-                <div class="p-2.5 bg-stone-100 dark:bg-stone-800/80 rounded-xl border border-notion-border dark:border-notion-borderDark flex flex-wrap items-center justify-between gap-2">
-                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span class="font-bold text-stone-500 text-[11px] mr-1">모드 / 부품:</span>
-                        
-                        <button onclick="selectTool('select')" id="tool-select" class="tool-btn active px-3 py-1.5 rounded-lg border border-amber-500 bg-amber-500 text-white font-bold flex items-center gap-1.5 shadow-sm">
-                            <span>👆</span> 선택 / 이동
-                        </button>
-
-                        <button onclick="selectTool('battery')" id="tool-battery" class="tool-btn px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 font-semibold flex items-center gap-1.5">
-                            <span>🔋</span> 건전지 (DC)
-                        </button>
-
-                        <button onclick="selectTool('resistor')" id="tool-resistor" class="tool-btn px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 font-semibold flex items-center gap-1.5">
-                            <span>⚡</span> 저항
-                        </button>
-
-                        <button onclick="selectTool('bulb')" id="tool-bulb" class="tool-btn px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 font-semibold flex items-center gap-1.5">
-                            <span>💡</span> 전구
-                        </button>
-
-                        <button onclick="selectTool('capacitor')" id="tool-capacitor" class="tool-btn px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 font-semibold flex items-center gap-1.5">
-                            <span>🪫</span> 축전기
-                        </button>
-
-                        <button onclick="selectTool('wire')" id="tool-wire" class="tool-btn px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 font-semibold flex items-center gap-1.5">
-                            <span>➖</span> 전선 (드래그 연결)
-                        </button>
-
-                        <!-- Wire Crossover Mode Toggle -->
-                        <button id="wireCrossToggleBtn" onclick="toggleWireCrossMode()" class="px-2.5 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold flex items-center gap-1 text-xs transition-colors">
-                            <span id="wireCrossIcon">🔴</span> <span id="wireCrossText">교차: 접속(병렬 분기)</span>
-                        </button>
-
-                        <button onclick="selectTool('eraser')" id="tool-eraser" class="tool-btn px-2.5 py-1.5 rounded-lg border border-rose-300 dark:border-rose-800 bg-rose-50 text-rose-700 dark:bg-rose-950/40 font-semibold flex items-center gap-1">
-                            <span>❌</span> 삭제
-                        </button>
-                    </div>
-
-                    <!-- Simulation Control Switches -->
-                    <div class="flex items-center space-x-2">
-                        <!-- Flow Display Mode Toggle -->
-                        <button id="flowModeBtn" onclick="toggleFlowMode()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors">
-                            <span id="flowModeIcon">🔵</span> <span id="flowModeText">보기: 전자의 흐름 (e⁻)</span>
-                        </button>
-
-                        <button id="switchToggleBtn" onclick="toggleCircuitSwitch()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1">
-                            <span id="switchIcon">🟢</span> <span id="switchText">스위치: ON</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Main Grid Editor & Canvas -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    <!-- Canvas Box -->
-                    <div class="lg:col-span-8 flex flex-col space-y-2">
-                        <div class="relative w-full aspect-[4/3] bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-inner">
-                            <canvas id="circuitCanvas" class="w-full h-full block"></canvas>
-
-                            <!-- Overlay Status -->
-                            <div class="absolute top-3 left-3 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg text-xs text-white flex items-center gap-2">
-                                <span id="simStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                                <span id="simStatusText" class="font-mono text-[11px]">전류 시뮬레이션 가동 중</span>
-                            </div>
-
-                            <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur px-2.5 py-1 rounded text-[10px] text-slate-300 font-mono">
-                                🔌 전선 모드: 드래그하여 한 번에 연결 | 교차 버튼: 접속/비접속 변경
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Inspector & Measurements Panel -->
-                    <div class="lg:col-span-4 space-y-3">
-                        <!-- Inspector Box -->
-                        <div class="p-3.5 bg-white dark:bg-notion-cardDark rounded-xl border border-notion-border dark:border-notion-borderDark space-y-3 shadow-sm">
-                            <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center justify-between">
-                                <span>선택한 부품 수치 설정</span>
-                                <span id="selectedCompType" class="notion-tag bg-stone-100 text-stone-700">선택 없음</span>
-                            </h3>
-
-                            <div id="inspectorControls" class="space-y-3 text-xs">
-                                <p id="inspectorPlaceholder" class="text-stone-400 text-center py-4">캔버스에서 부품을 클릭하거나<br><strong>우클릭</strong>하여 수치 수정 및 회전이 가능합니다.</p>
-
-                                <div id="paramGroup" class="hidden space-y-3">
-                                    <div id="sliderContainer" class="space-y-1">
-                                        <div class="flex justify-between font-medium">
-                                            <span id="paramLabel">수치 변수:</span>
-                                            <span id="paramValText" class="font-bold text-amber-600 font-mono">10.0</span>
-                                        </div>
-                                        <input type="range" id="paramSlider" class="w-full accent-amber-500 cursor-pointer">
-                                    </div>
-
-                                    <div class="flex items-center justify-between pt-2 border-t border-stone-200 dark:border-stone-700 text-[11px] gap-1">
-                                        <span class="text-stone-500">방향: <strong id="compDirText" class="font-mono text-stone-700 dark:text-stone-300">0°</strong></span>
-                                        <div class="flex items-center gap-1">
-                                            <button onclick="rotateSelectedComp(90)" class="px-2 py-1 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-800 dark:text-amber-200 font-bold rounded flex items-center gap-1 transition-colors">
-                                                🔄 90°
-                                            </button>
-                                            <button onclick="rotateSelectedComp(180)" class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 hover:bg-indigo-200 text-indigo-800 dark:text-indigo-200 font-bold rounded flex items-center gap-1 transition-colors">
-                                                🔁 180° 반전
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex justify-between items-center text-[11px] pt-1">
-                                        <span class="text-stone-500">위치: <strong id="compPosText" class="font-mono text-stone-700 dark:text-stone-300">Grid (0,0)</strong></span>
-                                        <button onclick="deleteSelectedComp()" class="px-2 py-0.5 bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 rounded hover:bg-rose-200 font-medium">
-                                            🗑️ 삭제
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Circuit Physics Measurements Card -->
-                        <div class="p-3.5 bg-notion-card dark:bg-notion-cardDark rounded-xl border border-notion-border dark:border-notion-borderDark space-y-2.5">
-                            <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider">회로 실시간 상태 요약</h3>
-
-                            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                                <div class="p-2 bg-white dark:bg-stone-800 rounded border border-stone-200 dark:border-stone-700">
-                                    <div class="text-stone-400 text-[10px]">전체 등가 저항</div>
-                                    <div id="readoutReq" class="font-bold text-stone-800 dark:text-stone-100 text-sm">-- Ω</div>
-                                </div>
-                                <div class="p-2 bg-white dark:bg-stone-800 rounded border border-stone-200 dark:border-stone-700">
-                                    <div class="text-stone-400 text-[10px]">전체 출력 전류</div>
-                                    <div id="readoutItot" class="font-bold text-stone-800 dark:text-stone-100 text-sm">-- A</div>
-                                </div>
-                            </div>
-
-                            <!-- Power & Capacitor Info -->
-                            <div class="p-2 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded text-[11px] space-y-1">
-                                <div class="flex justify-between items-center font-bold text-stone-800 dark:text-stone-200">
-                                    <span>총 소비 전력 ($P_{tot}$)</span>
-                                    <span id="readoutPtot" class="text-amber-600 font-mono">0.00 W</span>
-                                </div>
-                                <div class="flex justify-between items-center text-stone-500">
-                                    <span>축전기 충전 상태 ($Q$)</span>
-                                    <span id="readoutCapCharge" class="font-mono text-blue-600 font-bold">미연결</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 4: STEPS -->
-            <section id="tab-steps" class="tab-content hidden space-y-6">
-                <div class="border-b border-notion-border dark:border-notion-borderDark pb-2">
-                    <h2 class="text-xl font-bold flex items-center gap-2">
-                        <span>🔬</span> 단계별 탐구 가이드
-                    </h2>
-                    <p class="text-xs text-stone-500 mt-1">1단계부터 4단계까지 직접 회로를 조작하며 결과를 작성하세요.</p>
-                </div>
-
-                <!-- Step Tabs Bar -->
-                <div class="flex border-b border-notion-border dark:border-notion-borderDark space-x-1 overflow-x-auto pb-px">
-                    <button id="stepTab1" onclick="selectStep(1)" class="step-tab-btn py-2 px-4 text-xs font-semibold border-b-2 border-amber-500 text-amber-600 dark:text-amber-400">
-                        1단계: 직렬 회로
-                    </button>
-                    <button id="stepTab2" onclick="selectStep(2)" class="step-tab-btn py-2 px-4 text-xs font-semibold text-stone-500 border-b-2 border-transparent hover:text-stone-800">
-                        2단계: 병렬 회로
-                    </button>
-                    <button id="stepTab3" onclick="selectStep(3)" class="step-tab-btn py-2 px-4 text-xs font-semibold text-stone-500 border-b-2 border-transparent hover:text-stone-800">
-                        3단계: 직·병렬 혼합 및 축전기
-                    </button>
-                    <button id="stepTab4" onclick="selectStep(4)" class="step-tab-btn py-2 px-4 text-xs font-semibold text-stone-500 border-b-2 border-transparent hover:text-stone-800">
-                        4단계: 보고서 제출
-                    </button>
-                </div>
-
-                <!-- Step Content 1 -->
-                <div id="stepContent1" class="step-panel space-y-4">
-                    <div class="notion-callout">
-                        <span class="text-xl">1️⃣</span>
-                        <div class="text-xs md:text-sm">
-                            <strong class="font-bold text-stone-900 dark:text-stone-100 block mb-1">직렬 회로 직접 연결 및 전압 분배 관찰</strong>
-                            상단 '직렬 프리셋'을 누르거나 직접 전원과 저항 2개를 하나의 루프로 연결하세요. 저항 크기에 비례하여 전압이 분배되는지 확인합니다.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step Content 2 -->
-                <div id="stepContent2" class="step-panel hidden space-y-4">
-                    <div class="notion-callout">
-                        <span class="text-xl">2️⃣</span>
-                        <div class="text-xs md:text-sm">
-                            <strong class="font-bold text-stone-900 dark:text-stone-100 block mb-1">병렬 회로 직접 연결 및 전류 분배 관찰</strong>
-                            병렬 연결에서는 각 저항에 동일한 전압이 걸리며, 저항이 작은 가지일수록 더 많은 전류가 흐릅니다.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step Content 3 -->
-                <div id="stepContent3" class="step-panel hidden space-y-4">
-                    <div class="notion-callout">
-                        <span class="text-xl">3️⃣</span>
-                        <div class="text-xs md:text-sm">
-                            <strong class="font-bold text-stone-900 dark:text-stone-100 block mb-1">직·병렬 혼합 회로 및 축전기(Capacitor) 충전 탐구</strong>
-                            직렬 요소와 병렬 요소를 혼합해 구성하고, 축전기를 배치했을 때 스위치를 켜는 순간 전류가 흐르다 충전이 완료되면서 차단되는 현상을 관찰하세요.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step Content 4 -->
-                <div id="stepContent4" class="step-panel hidden space-y-4">
-                    <div class="notion-callout">
-                        <span class="text-xl">4️⃣</span>
-                        <div class="text-xs md:text-sm">
-                            <strong class="font-bold text-stone-900 dark:text-stone-100 block mb-1">탐구 결과 정리 및 게시판 제출</strong>
-                            직접 구성한 회로에서의 측정 결과를 바탕으로보고서를 작성해 게시판에 업로드하세요.
-                        </div>
-                    </div>
-                    <button onclick="switchTab('board')" class="px-4 py-2 bg-amber-500 text-white rounded text-xs font-bold">
-                        게시판으로 이동하기
-                    </button>
-                </div>
-            </section>
-
-            <!-- TAB 5: DOWNLOADS -->
-            <section id="tab-downloads" class="tab-content hidden space-y-6">
-                <div class="border-b border-notion-border dark:border-notion-borderDark pb-2">
-                    <h2 class="text-xl font-bold flex items-center gap-2">
-                        <span>📁</span> 학습 자료실 및 서식
-                    </h2>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="p-4 bg-white dark:bg-notion-cardDark rounded-lg border border-notion-border dark:border-notion-borderDark flex items-center justify-between">
-                        <div>
-                            <h3 class="text-xs font-bold">회로직접구성_실험지.docx</h3>
-                            <p class="text-[11px] text-stone-400">1.5 MB | 워크시트 서식</p>
-                        </div>
-                        <button onclick="downloadFile('회로직접구성_실험지.txt', '회로 탐구 학습지 파일입니다.')" class="text-amber-600 font-bold text-xs">
-                            다운로드
-                        </button>
-                    </div>
-                </div>
-            </section>
-
+<!-- ... existing code ... -->
             <!-- TAB 6: BOARD -->
             <section id="tab-board" class="tab-content hidden space-y-6">
                 <div class="border-b border-notion-border dark:border-notion-borderDark pb-2 flex items-center justify-between">
@@ -628,175 +24,160 @@
                 </div>
                 <div id="postsList" class="space-y-2"></div>
             </section>
+
+            <!-- TAB 7: TEACHER DASHBOARD -->
+            <section id="tab-teacher" class="tab-content hidden space-y-6">
+                <!-- Lock Screen if not authenticated -->
+                <div id="teacherLockScreen" class="p-8 bg-white dark:bg-notion-cardDark rounded-2xl border border-notion-border dark:border-notion-borderDark max-w-md mx-auto text-center space-y-4 shadow-sm my-8">
+                    <div class="text-4xl">🔐</div>
+                    <h2 class="text-lg font-bold text-stone-800 dark:text-stone-100">교사 인증이 필요합니다</h2>
+                    <p class="text-xs text-stone-500">학생들의 참여 현황 조회 및 피드백 작성을 위해 교사 비밀번호를 입력해 주세요.</p>
+                    <div class="space-y-2">
+                        <input type="password" id="teacherPasscode" placeholder="비밀번호 입력 (기본: 1234)" class="w-full p-2.5 text-center border rounded-lg bg-stone-50 dark:bg-stone-800 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none" onkeyup="if(event.key==='Enter') unlockTeacherDashboard()">
+                        <button onclick="unlockTeacherDashboard()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors">
+                            교사 대시보드 접속하기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Teacher Dashboard Main Content (Hidden until unlocked) -->
+                <div id="teacherDashboardContent" class="hidden space-y-6">
+                    <div class="border-b border-notion-border dark:border-notion-borderDark pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-xl font-bold flex items-center gap-2">
+                                <span>📊</span> 교사 대시보드: 학생 참여 & 제출 현황
+                            </h2>
+                            <p class="text-xs text-stone-500 mt-0.5">실시간 학생들의 회로 탐구 보고서 제출 상태와 피드백 관리 현황입니다.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportTeacherCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm">
+                                <i class="fa-solid fa-file-excel"></i> CSV/Excel 다운로드
+                            </button>
+                            <button onclick="lockTeacherDashboard()" class="px-3 py-1.5 bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-lg text-xs font-semibold hover:bg-stone-300 transition-colors">
+                                🔒 대시보드 잠금
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary KPI Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="p-3.5 bg-white dark:bg-notion-cardDark border border-notion-border dark:border-notion-borderDark rounded-xl space-y-1">
+                            <div class="text-stone-400 text-[11px] font-medium flex justify-between items-center">
+                                <span>총 제출 보고서</span>
+                                <span>📄</span>
+                            </div>
+                            <div id="kpiReportsCount" class="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">0건</div>
+                        </div>
+
+                        <div class="p-3.5 bg-white dark:bg-notion-cardDark border border-notion-border dark:border-notion-borderDark rounded-xl space-y-1">
+                            <div class="text-stone-400 text-[11px] font-medium flex justify-between items-center">
+                                <span>총 질문 (Q&A)</span>
+                                <span>❓</span>
+                            </div>
+                            <div id="kpiQnaCount" class="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">0건</div>
+                        </div>
+
+                        <div class="p-3.5 bg-white dark:bg-notion-cardDark border border-notion-border dark:border-notion-borderDark rounded-xl space-y-1">
+                            <div class="text-stone-400 text-[11px] font-medium flex justify-between items-center">
+                                <span>참여 학생 수</span>
+                                <span>👨‍🎓</span>
+                            </div>
+                            <div id="kpiStudentsCount" class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400">0명</div>
+                        </div>
+
+                        <div class="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl space-y-1">
+                            <div class="text-amber-700 dark:text-amber-300 text-[11px] font-medium flex justify-between items-center">
+                                <span>피드백 대기 건수</span>
+                                <span>⏳</span>
+                            </div>
+                            <div id="kpiPendingCount" class="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">0건</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter & Search Controls -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-2 p-3 bg-stone-100 dark:bg-stone-800/80 rounded-xl border border-notion-border dark:border-notion-borderDark text-xs">
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                            <span class="font-bold text-stone-500 text-[11px]">필터:</span>
+                            <button onclick="filterTeacherTable('all')" id="tblFilter-all" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold">전체 보기</button>
+                            <button onclick="filterTeacherTable('report')" id="tblFilter-report" class="px-2.5 py-1 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 border">보고서만</button>
+                            <button onclick="filterTeacherTable('pending')" id="tblFilter-pending" class="px-2.5 py-1 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 border">피드백 대기</button>
+                        </div>
+                        <div class="w-full sm:w-64">
+                            <input type="text" id="teacherSearchInput" onkeyup="renderTeacherTable()" placeholder="학생 이름 / 학번 검색..." class="w-full px-3 py-1.5 rounded-lg border bg-white dark:bg-stone-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Student Participation Roster Table -->
+                    <div class="overflow-x-auto rounded-xl border border-notion-border dark:border-notion-borderDark bg-white dark:bg-notion-cardDark shadow-sm">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-stone-50 dark:bg-stone-800 border-b border-notion-border dark:border-notion-borderDark text-stone-500 font-semibold text-[11px] uppercase tracking-wider">
+                                    <th class="py-3 px-4">학생 정보</th>
+                                    <th class="py-3 px-3">구분</th>
+                                    <th class="py-3 px-4">제목 및 제출 내용 요약</th>
+                                    <th class="py-3 px-3">제출 일시</th>
+                                    <th class="py-3 px-3">피드백 상태</th>
+                                    <th class="py-3 px-4 text-right">관리 / 피드백</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherTableBody" class="divide-y divide-notion-border dark:divide-notion-borderDark">
+                                <!-- Populated dynamically by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
-
-    <!-- Firebase SDK v11 Initialization & Firestore Database Integration -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // App ID and Firebase Config setup (Uses system environment or provided configuration)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'science-circuit-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "AIzaSyCNa-hsnFjPowDFwHWLPLVrY8y12j4d-uA",
-                authDomain: "codetest-2d4a6.firebaseapp.com",
-                projectId: "codetest-2d4a6",
-                storageBucket: "codetest-2d4a6.firebasestorage.app",
-                messagingSenderId: "1010433147403",
-                appId: "1:1010433147403:web:8b47f35fb9b8e9d0e97d0e"
-            };
-
-        // Initialize Firebase Services
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        window.db = db;
-        window.auth = auth;
-        window.appId = appId;
-
-        // Authenticate User First Before Querying DB
-        async function initAuthAndDB() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                console.log("Firebase Auth Authenticated:", auth.currentUser?.uid);
-                listenToRealtimePosts();
-            } catch (err) {
-                console.warn("Firebase Auth fallback/warning:", err);
-            }
-        }
-
-        // Real-time Firestore Sync (Rule 1 & Rule 2 Compliant)
-        function listenToRealtimePosts() {
-            if (!auth.currentUser) return;
-            const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
-
-            onSnapshot(postsRef, (snapshot) => {
-                const loadedPosts = [];
-                snapshot.forEach((docSnap) => {
-                    loadedPosts.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                // Sort in memory by date
-                loadedPosts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-                
-                if (loadedPosts.length > 0) {
-                    window.posts = loadedPosts;
-                    if (typeof window.renderPosts === 'function') {
-                        window.renderPosts();
-                    }
-                }
-            }, (error) => {
-                console.error("Firestore onSnapshot error:", error);
-            });
-        }
-
-        // Save post to Firestore database
-        window.savePostToDB = async function(postData) {
-            if (!auth.currentUser) {
-                console.warn("User not authenticated yet");
-                return;
-            }
-            try {
-                const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
-                await addDoc(postsRef, postData);
-            } catch (err) {
-                console.error("Error saving post to Firestore:", err);
-                throw err;
-            }
-        };
-
-        initAuthAndDB();
-    </script>
-
+<!-- ... existing code ... -->
     <!-- Submit Modal Dialog -->
     <div id="submitModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-notion-cardDark w-full max-w-lg rounded-xl border border-notion-border dark:border-notion-borderDark p-6 space-y-4 shadow-xl">
+<!-- ... existing code ... -->
+    </div>
+
+    <!-- Teacher Feedback Modal Dialog -->
+    <div id="teacherFeedbackModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-notion-cardDark w-full max-w-lg rounded-xl border border-notion-border dark:border-notion-borderDark p-6 space-y-4 shadow-xl text-xs">
             <div class="flex items-center justify-between border-b border-notion-border dark:border-notion-borderDark pb-3">
                 <h3 class="text-base font-bold flex items-center gap-2">
-                    <span>✏️</span> 과제 작성 및 질문 등록
+                    <span>💬</span> 교사 평가 및 피드백 작성
                 </h3>
-                <button onclick="closeSubmitModal()" class="text-stone-400 hover:text-stone-600">
+                <button onclick="closeTeacherFeedbackModal()" class="text-stone-400 hover:text-stone-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <form id="submissionForm" onsubmit="handleFormSubmit(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-semibold mb-1 text-stone-700 dark:text-stone-300">구분 선택</label>
-                    <select id="postCategory" class="w-full p-2 border rounded bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200">
-                        <option value="report">📄 탐구 보고서 제출</option>
-                        <option value="qna">❓ 질문하기 (Q&A)</option>
-                    </select>
+            <div class="p-3 bg-stone-50 dark:bg-stone-800 rounded-lg border space-y-1">
+                <div class="flex justify-between items-center text-stone-500 font-medium">
+                    <span id="fbModalAuthor" class="font-bold text-indigo-600 dark:text-indigo-400">학번/이름</span>
+                    <span id="fbModalDate" class="font-mono text-[11px]">2026-04-12</span>
                 </div>
+                <h4 id="fbModalTitle" class="font-bold text-stone-800 dark:text-stone-100 text-sm">제출 제목</h4>
+                <p id="fbModalContent" class="text-stone-600 dark:text-stone-300 leading-relaxed text-[11px] pt-1">제출 내용</p>
+            </div>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-semibold mb-1">학생 이름 / 학번</label>
-                        <input type="text" id="postAuthor" required placeholder="예: 10101 홍길동" class="w-full p-2 border rounded bg-stone-50 dark:bg-stone-800">
-                    </div>
-                    <div>
-                        <label class="block font-semibold mb-1">비밀번호</label>
-                        <input type="password" id="postPw" required placeholder="****" class="w-full p-2 border rounded bg-stone-50 dark:bg-stone-800">
-                    </div>
-                </div>
+            <div class="space-y-2">
+                <label class="block font-bold text-stone-700 dark:text-stone-200">교사 피드백 및 조언 입력</label>
+                <textarea id="teacherCommentInput" rows="4" placeholder="학생의 탐구 내용에 대한 총평이나 보완점을 작성해 주세요." class="w-full p-2.5 border rounded-lg bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+            </div>
 
-                <div>
-                    <label class="block font-semibold mb-1">제목</label>
-                    <input type="text" id="postTitle" required placeholder="제목을 입력하세요" class="w-full p-2 border rounded bg-stone-50 dark:bg-stone-800">
+            <div class="pt-2 flex items-center justify-between">
+                <button type="button" onclick="deletePostByTeacher()" class="px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded font-semibold">
+                    🗑️ 항목 삭제
+                </button>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeTeacherFeedbackModal()" class="px-3 py-1.5 border rounded">취소</button>
+                    <button type="button" onclick="saveTeacherFeedback()" class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                        피드백 저장 및 발송
+                    </button>
                 </div>
-
-                <div>
-                    <label class="block font-semibold mb-1">탐구 내용 및 회로 구성 수치 요약</label>
-                    <textarea id="postContent" rows="4" required placeholder="실험 수치 및 축전기/저항의 동작 결과 요약을 작성하세요." class="w-full p-2 border rounded bg-stone-50 dark:bg-stone-800"></textarea>
-                </div>
-
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeSubmitModal()" class="px-3 py-1.5 rounded border">취소</button>
-                    <button type="submit" class="px-4 py-1.5 rounded bg-amber-500 text-white font-semibold">제출하기</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
     <!-- Toast Notification Banner -->
     <div id="toast" class="fixed bottom-5 right-5 z-50 bg-stone-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2">
-        <span id="toastMessage">안내 메시지</span>
-    </div>
-
-    <!-- Floating Right-Click Context Menu -->
-    <div id="contextMenu" class="fixed z-50 hidden bg-white dark:bg-stone-800 rounded-lg shadow-xl border border-stone-200 dark:border-stone-700 py-1.5 w-44 text-xs font-sans">
-        <div class="px-3 py-1 font-bold text-stone-400 text-[10px] uppercase border-b border-stone-100 dark:border-stone-700/50 flex justify-between items-center">
-            <span id="ctxTitle">부품 메뉴</span>
-            <span id="ctxPos" class="font-mono text-[9px] text-stone-500"></span>
-        </div>
-        <button onclick="ctxEditValue()" class="w-full text-left px-3 py-1.5 hover:bg-amber-50 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center gap-2">
-            <span>✏️</span> <span>수치 직접 수정...</span>
-        </button>
-        <button onclick="ctxRotate(90)" class="w-full text-left px-3 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center gap-2">
-            <span>🔄</span> <span>90° 회전</span>
-        </button>
-        <button onclick="ctxRotate(180)" class="w-full text-left px-3 py-1.5 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 flex items-center gap-2">
-            <span>🔁</span> <span>180° 반전 (극성 교체)</span>
-        </button>
-        <div class="border-t border-stone-100 dark:border-stone-700 my-1"></div>
-        <button onclick="ctxDelete()" class="w-full text-left px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center gap-2 font-medium">
-            <span>🗑️</span> <span>부품 삭제</span>
-        </button>
-    </div>
-
-    <!-- Toast Notification Banner -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-stone-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2">
-        <span id="toastMessage">안내 메시지</span>
-    </div>
-
+<!-- ... existing code ... -->
     <script>
         /* -------------------------------------------------------------------------
          * GLOBAL STATE & CIRCUIT BUILDER ENGINE
@@ -817,6 +198,12 @@
         let animFrameId = null;
         let electronParticles = [];
 
+        // Teacher Dashboard state
+        let isTeacherUnlocked = false;
+        let teacherPasscodeSecret = '1234';
+        let currentEditingPostId = null;
+        let teacherFilterCategory = 'all';
+
         // Grid Component Storage (GRID_COLS x GRID_ROWS)
         let circuitGrid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
 
@@ -833,52 +220,210 @@
             }
         ];
 
+        /* Teacher Dashboard Logic */
+        function unlockTeacherDashboard() {
+            const input = document.getElementById('teacherPasscode');
+            if (input && input.value === teacherPasscodeSecret) {
+                isTeacherUnlocked = true;
+                document.getElementById('teacherLockScreen').classList.add('hidden');
+                document.getElementById('teacherDashboardContent').classList.remove('hidden');
+                renderTeacherDashboard();
+                showToast("교사 대시보드가 인증되었습니다.");
+            } else {
+                showToast("⚠️ 교사 비밀번호가 일치하지 않습니다. (기본: 1234)");
+            }
+        }
+
+        function lockTeacherDashboard() {
+            isTeacherUnlocked = false;
+            document.getElementById('teacherLockScreen').classList.remove('hidden');
+            document.getElementById('teacherDashboardContent').classList.add('hidden');
+            const passcodeEl = document.getElementById('teacherPasscode');
+            if (passcodeEl) passcodeEl.value = '';
+            showToast("대시보드가 다시 잠겼습니다.");
+        }
+
+        function renderTeacherDashboard() {
+            if (!isTeacherUnlocked) return;
+
+            // Compute KPIs
+            const reports = posts.filter(p => p.category === 'report' || !p.category);
+            const qnas = posts.filter(p => p.category === 'qna');
+            
+            const uniqueStudents = new Set(posts.map(p => p.author)).size;
+            const pendingFeedbacks = posts.filter(p => !p.status || p.status.includes('대기')).length;
+
+            document.getElementById('kpiReportsCount').textContent = `${reports.length}건`;
+            document.getElementById('kpiQnaCount').textContent = `${qnas.length}건`;
+            document.getElementById('kpiStudentsCount').textContent = `${uniqueStudents}명`;
+            document.getElementById('kpiPendingCount').textContent = `${pendingFeedbacks}건`;
+
+            renderTeacherTable();
+        }
+
+        function filterTeacherTable(cat) {
+            teacherFilterCategory = cat;
+            document.querySelectorAll('[id^="tblFilter-"]').forEach(btn => {
+                btn.className = "px-2.5 py-1 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 border";
+            });
+            const activeBtn = document.getElementById(`tblFilter-${cat}`);
+            if (activeBtn) activeBtn.className = "px-2.5 py-1 rounded bg-indigo-600 text-white font-bold";
+
+            renderTeacherTable();
+        }
+
+        function renderTeacherTable() {
+            const tbody = document.getElementById('teacherTableBody');
+            if (!tbody) return;
+
+            const query = (document.getElementById('teacherSearchInput')?.value || '').toLowerCase().trim();
+
+            let filtered = posts.filter(p => {
+                if (teacherFilterCategory === 'report' && p.category === 'qna') return false;
+                if (teacherFilterCategory === 'pending' && p.status && !p.status.includes('대기')) return false;
+
+                if (query) {
+                    const matchAuthor = (p.author || '').toLowerCase().includes(query);
+                    const matchTitle = (p.title || '').toLowerCase().includes(query);
+                    return matchAuthor || matchTitle;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-stone-400">
+                            제출된 과제 또는 검색 결과가 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(p => {
+                const isPending = !p.status || p.status.includes('대기');
+                const statusBadge = isPending
+                    ? `<span class="notion-tag bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">⏳ 피드백 대기</span>`
+                    : `<span class="notion-tag bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">✅ 완료</span>`;
+
+                const categoryBadge = p.category === 'qna'
+                    ? `<span class="notion-tag bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">❓ 질문</span>`
+                    : `<span class="notion-tag bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200">📄 보고서</span>`;
+
+                return `
+                    <tr class="hover:bg-stone-50/80 dark:hover:bg-stone-800/50 transition-colors">
+                        <td class="py-3 px-4 font-bold text-stone-800 dark:text-stone-200">${p.author || '학생'}</td>
+                        <td class="py-3 px-3">${categoryBadge}</td>
+                        <td class="py-3 px-4">
+                            <div class="font-bold text-stone-800 dark:text-stone-200 truncate max-w-xs">${p.title || '제목 없음'}</div>
+                            <div class="text-[11px] text-stone-500 truncate max-w-xs">${p.content || ''}</div>
+                            ${p.comment ? `<div class="mt-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">💬 ${p.comment}</div>` : ''}
+                        </td>
+                        <td class="py-3 px-3 font-mono text-[11px] text-stone-400">${p.date || '-'}</td>
+                        <td class="py-3 px-3">${statusBadge}</td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="openTeacherFeedbackModal('${p.id}')" class="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 rounded font-bold transition-colors">
+                                ✏️ 피드백 작성
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openTeacherFeedbackModal(postId) {
+            const post = posts.find(p => String(p.id) === String(postId));
+            if (!post) return;
+
+            currentEditingPostId = post.id;
+            document.getElementById('fbModalAuthor').textContent = post.author || '학생';
+            document.getElementById('fbModalDate').textContent = post.date || '';
+            document.getElementById('fbModalTitle').textContent = post.title || '';
+            document.getElementById('fbModalContent').textContent = post.content || '';
+            document.getElementById('teacherCommentInput').value = post.comment ? post.comment.replace(/^선생님:\s*/, '') : '';
+
+            document.getElementById('teacherFeedbackModal').classList.remove('hidden');
+        }
+
+        function closeTeacherFeedbackModal() {
+            document.getElementById('teacherFeedbackModal').classList.add('hidden');
+            currentEditingPostId = null;
+        }
+
+        async function saveTeacherFeedback() {
+            if (!currentEditingPostId) return;
+            const commentVal = document.getElementById('teacherCommentInput').value.trim();
+
+            const post = posts.find(p => String(p.id) === String(currentEditingPostId));
+            if (post) {
+                post.comment = commentVal ? `선생님: ${commentVal}` : '';
+                post.status = '피드백 완료';
+
+                // Sync with Firestore if integrated
+                if (window.db && window.auth?.currentUser && post.id && typeof post.id === 'string') {
+                    try {
+                        const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                        const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'posts', post.id);
+                        await updateDoc(docRef, {
+                            comment: post.comment,
+                            status: post.status
+                        });
+                    } catch (e) {
+                        console.warn("Firestore update error:", e);
+                    }
+                }
+
+                renderPosts();
+                renderTeacherDashboard();
+                closeTeacherFeedbackModal();
+                showToast("학생에게 교사 피드백이 저장되었습니다!");
+            }
+        }
+
+        function deletePostByTeacher() {
+            if (!currentEditingPostId) return;
+            if (confirm("해당 제출 항목을 정말 삭제하시겠습니까?")) {
+                posts = posts.filter(p => String(p.id) !== String(currentEditingPostId));
+                renderPosts();
+                renderTeacherDashboard();
+                closeTeacherFeedbackModal();
+                showToast("제출 항목이 삭제되었습니다.");
+            }
+        }
+
+        function exportTeacherCSV() {
+            if (posts.length === 0) {
+                showToast("내보낼 제출 데이터가 없습니다.");
+                return;
+            }
+
+            let csvContent = "\uFEFF학번/이름,구분,제목,제출일시,피드백상태,교사피드백,내용\n";
+            posts.forEach(p => {
+                const author = `"${(p.author || '').replace(/"/g, '""')}"`;
+                const cat = p.category === 'qna' ? '질문' : '보고서';
+                const title = `"${(p.title || '').replace(/"/g, '""')}"`;
+                const date = `"${p.date || ''}"`;
+                const status = `"${p.status || '대기'}"`;
+                const comment = `"${(p.comment || '').replace(/"/g, '""')}"`;
+                const content = `"${(p.content || '').replace(/"/g, '""')}"`;
+
+                csvContent += `${author},${cat},${title},${date},${status},${comment},${content}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `학생_회로탐구_제출현황_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("CSV 파일이 출석 및 성적 기록용으로 다운로드되었습니다.");
+        }
+
         function toggleFlowMode() {
-            if (flowMode === 'electron') {
-                flowMode = 'current';
-            } else if (flowMode === 'current') {
-                flowMode = 'both';
-            } else {
-                flowMode = 'electron';
-            }
-
-            const btnIcon = document.getElementById('flowModeIcon');
-            const btnText = document.getElementById('flowModeText');
-            const flowBtn = document.getElementById('flowModeBtn');
-
-            if (flowMode === 'electron') {
-                if (btnIcon) btnIcon.textContent = '🔵';
-                if (btnText) btnText.textContent = '보기: 전자의 흐름 (e⁻)';
-                if (flowBtn) flowBtn.className = 'px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors';
-                showToast('전자의 흐름 모드 (-극 → +극) 로 전환되었습니다.');
-            } else if (flowMode === 'current') {
-                if (btnIcon) btnIcon.textContent = '🔴';
-                if (btnText) btnText.textContent = '보기: 전류의 흐름 (I)';
-                if (flowBtn) flowBtn.className = 'px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors';
-                showToast('전류의 흐름 모드 (+극 → -극) 로 전환되었습니다.');
-            } else {
-                if (btnIcon) btnIcon.textContent = '🔀';
-                if (btnText) btnText.textContent = '보기: 전류 + 전자 (I & e⁻)';
-                if (flowBtn) flowBtn.className = 'px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors';
-                showToast('전류와 전자의 흐름이 동시에 표시됩니다.');
-            }
-        }
-
-        function toggleWireCrossMode() {
-            wireCrossMode = (wireCrossMode === 'connected') ? 'bridge' : 'connected';
-            const icon = document.getElementById('wireCrossIcon');
-            const text = document.getElementById('wireCrossText');
-            if (wireCrossMode === 'connected') {
-                if (icon) icon.textContent = '🔴';
-                if (text) text.textContent = '교차: 접속(병렬 분기)';
-                showToast('전선 교차 시 접속(병렬 분기) 모드로 전환되었습니다.');
-            } else {
-                if (icon) icon.textContent = '🌉';
-                if (text) text.textContent = '교차: 비접속(점프)';
-                showToast('전선 교차 시 비접속(점프 교차) 모드로 전환되었습니다.');
-            }
-        }
-
+<!-- ... existing code ... -->
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             const target = document.getElementById('tab-' + tabId);
@@ -894,791 +439,15 @@
 
             if (tabId === 'simulator') {
                 setTimeout(resizeCanvas, 50);
+            } else if (tabId === 'teacher' && isTeacherUnlocked) {
+                renderTeacherDashboard();
             }
             document.getElementById('sidebar').classList.add('-translate-x-full');
         }
-
-        function selectTool(toolName) {
-            activeTool = toolName;
-            document.querySelectorAll('.tool-btn').forEach(btn => {
-                btn.classList.remove('active', 'bg-amber-500', 'text-white', 'border-amber-500');
-            });
-            const targetBtn = document.getElementById('tool-' + toolName);
-            if (targetBtn) {
-                targetBtn.classList.add('active', 'bg-amber-500', 'text-white', 'border-amber-500');
-            }
-            hideContextMenu();
-        }
-
-        function clearCircuit() {
-            circuitGrid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
-            selectedCell = null;
-            capChargeLevel = 0.0;
-            updateInspector();
-            showToast("회로가 전체 초기화되었습니다.");
-        }
-
-        function loadPreset(presetType) {
-            circuitGrid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
-            selectedCell = null;
-            capChargeLevel = 0.0;
-
-            if (presetType === 'series') {
-                circuitGrid[1][1] = { type: 'battery', val: 12, angle: 0 };
-                circuitGrid[1][2] = { type: 'resistor', val: 10, angle: 0 };
-                circuitGrid[1][3] = { type: 'bulb', val: 10, angle: 0 };
-                circuitGrid[1][4] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[2][4] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[2][3] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[2][2] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[2][1] = { type: 'wire', val: 0, angle: 90 };
-                showToast('직렬 회로 프리셋이 로드되었습니다.');
-            } else if (presetType === 'parallel') {
-                circuitGrid[1][1] = { type: 'battery', val: 12, angle: 0 };
-                circuitGrid[1][2] = { type: 'resistor', val: 20, angle: 0 };
-                circuitGrid[1][3] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[2][2] = { type: 'bulb', val: 20, angle: 0 };
-                circuitGrid[2][3] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[2][1] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[3][1] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[3][2] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[3][3] = { type: 'wire', val: 0, angle: 90 };
-                showToast('병렬 회로 프리셋이 로드되었습니다.');
-            } else if (presetType === 'mixed') {
-                circuitGrid[1][1] = { type: 'battery', val: 12, angle: 0 };
-                circuitGrid[1][2] = { type: 'resistor', val: 10, angle: 0 };
-                circuitGrid[1][3] = { type: 'resistor', val: 20, angle: 0 };
-                circuitGrid[1][4] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[2][3] = { type: 'bulb', val: 20, angle: 0 };
-                circuitGrid[2][4] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[2][1] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[3][1] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[3][2] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[3][3] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[3][4] = { type: 'wire', val: 0, angle: 90 };
-                showToast('직·병렬 혼합 회로 프리셋이 로드되었습니다.');
-            } else if (presetType === 'rc') {
-                circuitGrid[1][1] = { type: 'battery', val: 12, angle: 0 };
-                circuitGrid[1][2] = { type: 'resistor', val: 10, angle: 0 };
-                circuitGrid[1][3] = { type: 'capacitor', val: 100, angle: 0 };
-                circuitGrid[1][4] = { type: 'wire', val: 0, angle: 90 };
-                circuitGrid[2][4] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[2][3] = { type: 'bulb', val: 10, angle: 0 };
-                circuitGrid[2][2] = { type: 'wire', val: 0, angle: 0 };
-                circuitGrid[2][1] = { type: 'wire', val: 0, angle: 90 };
-                showToast('축전기(RC) 충전 회로 프리셋이 로드되었습니다.');
-            }
-            updateInspector();
-        }
-
-        function toggleCircuitSwitch() {
-            isSwitchOn = !isSwitchOn;
-            const btnIcon = document.getElementById('switchIcon');
-            const btnText = document.getElementById('switchText');
-            const switchBtn = document.getElementById('switchToggleBtn');
-            const statusDot = document.getElementById('simStatusDot');
-            const statusText = document.getElementById('simStatusText');
-
-            if (isSwitchOn) {
-                capChargeLevel = 0.0;
-                if (btnIcon) btnIcon.textContent = '🟢';
-                if (btnText) btnText.textContent = '스위치: ON';
-                if (switchBtn) {
-                    switchBtn.className = 'px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1';
-                }
-                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
-                if (statusText) statusText.textContent = '전류 시뮬레이션 가동 중';
-                showToast('스위치를 켰습니다. (전류 및 전자 흐름 시작)');
-            } else {
-                if (btnIcon) btnIcon.textContent = '🔴';
-                if (btnText) btnText.textContent = '스위치: OFF';
-                if (switchBtn) {
-                    switchBtn.className = 'px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1';
-                }
-                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
-                if (statusText) statusText.textContent = '회로 차단됨 (스위치 OFF)';
-                showToast('스위치를 껐습니다. (전류 차단)');
-            }
-        }
-
-        // Helper function to check adjacent cell connectivity for clean wire rendering
-        function getNeighborConnections(r, c) {
-            const conn = { N: false, S: false, E: false, W: false };
-
-            // Check North (r-1, c)
-            if (r > 0 && circuitGrid[r - 1][c]) {
-                const item = circuitGrid[r - 1][c];
-                if (item.type === 'wire' || item.angle === 90 || item.angle === 270) conn.N = true;
-            }
-            // Check South (r+1, c)
-            if (r < GRID_ROWS - 1 && circuitGrid[r + 1][c]) {
-                const item = circuitGrid[r + 1][c];
-                if (item.type === 'wire' || item.angle === 90 || item.angle === 270) conn.S = true;
-            }
-            // Check West (r, c-1)
-            if (c > 0 && circuitGrid[r][c - 1]) {
-                const item = circuitGrid[r][c - 1];
-                if (item.type === 'wire' || item.angle === 0 || item.angle === 180) conn.W = true;
-            }
-            // Check East (r, c+1)
-            if (c < GRID_COLS - 1 && circuitGrid[r][c + 1]) {
-                const item = circuitGrid[r][c + 1];
-                if (item.type === 'wire' || item.angle === 0 || item.angle === 180) conn.E = true;
-            }
-
-            return conn;
-        }
-
-        function solveCircuit() {
-            if (!isSwitchOn) {
-                return { Req: Infinity, Itot: 0, Ptot: 0, hasCapacitor: false, activeLoop: [], batteryReversed: false };
-            }
-
-            let totalV = 0;
-            let totalR = 0;
-            let parallelR = [];
-            let hasCap = false;
-            let activeCells = [];
-            let batteryReversed = false;
-
-            // Find all components and active loop cells
-            for (let r = 0; r < GRID_ROWS; r++) {
-                for (let c = 0; c < GRID_COLS; c++) {
-                    const comp = circuitGrid[r][c];
-                    if (!comp) continue;
-
-                    activeCells.push({ r, c });
-
-                    if (comp.type === 'battery') {
-                        totalV += comp.val;
-                        if (comp.angle === 180 || comp.angle === 270) {
-                            batteryReversed = true;
-                        }
-                    } else if (comp.type === 'resistor' || comp.type === 'bulb') {
-                        if (r >= 2 || (wireCrossMode === 'connected' && (comp.angle === 90 || comp.angle === 270))) {
-                            parallelR.push(comp.val);
-                        } else {
-                            totalR += comp.val;
-                        }
-                    } else if (comp.type === 'capacitor') {
-                        hasCap = true;
-                    }
-                }
-            }
-
-            if (hasCap) {
-                if (capChargeLevel < 1.0) {
-                    capChargeLevel = Math.min(1.0, capChargeLevel + 0.003);
-                }
-            }
-
-            if (parallelR.length > 0) {
-                let invSum = parallelR.reduce((sum, rVal) => sum + (1 / rVal), 0);
-                if (invSum > 0) {
-                    totalR += (1 / invSum);
-                }
-            }
-
-            if (hasCap) {
-                let capEffR = (capChargeLevel * 5000);
-                totalR += capEffR;
-            }
-
-            // Verify battery exists and resistance > 0
-            if (totalV <= 0 || totalR <= 0 || activeCells.length < 3) {
-                return { Req: totalR > 0 ? totalR : 0, Itot: 0, Ptot: 0, hasCapacitor: hasCap, activeLoop: [], batteryReversed };
-            }
-
-            let Itot = totalV / totalR;
-            let Ptot = totalV * Itot;
-
-            return {
-                Req: totalR,
-                Itot: Itot,
-                Ptot: Ptot,
-                hasCapacitor: hasCap,
-                activeLoop: activeCells,
-                batteryReversed
-            };
-        }
-
-        function drawCanvas() {
-            const canvas = document.getElementById('circuitCanvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const w = canvas.width;
-            const h = canvas.height;
-
-            ctx.clearRect(0, 0, w, h);
-
-            const cellW = w / GRID_COLS;
-            const cellH = h / GRID_ROWS;
-
-            // Draw Background Grid
-            ctx.strokeStyle = '#1E293B';
-            ctx.lineWidth = 1;
-            for (let c = 0; c <= GRID_COLS; c++) {
-                ctx.beginPath();
-                ctx.moveTo(c * cellW, 0);
-                ctx.lineTo(c * cellW, h);
-                ctx.stroke();
-            }
-            for (let r = 0; r <= GRID_ROWS; r++) {
-                ctx.beginPath();
-                ctx.moveTo(0, r * cellH);
-                ctx.lineTo(w, r * cellH);
-                ctx.stroke();
-            }
-
-            const solver = solveCircuit();
-
-            // Update measurements readouts
-            document.getElementById('readoutReq').textContent = solver.Req === Infinity ? '개방 회로' : solver.Req.toFixed(1) + ' Ω';
-            document.getElementById('readoutItot').textContent = solver.Itot.toFixed(2) + ' A';
-            document.getElementById('readoutPtot').textContent = solver.Ptot.toFixed(2) + ' W';
-
-            if (solver.hasCapacitor) {
-                document.getElementById('readoutCapCharge').textContent = (capChargeLevel * 100).toFixed(0) + '% (충전 중)';
-            } else {
-                document.getElementById('readoutCapCharge').textContent = '미연결';
-            }
-
-            // Draw Grid Components
-            for (let r = 0; r < GRID_ROWS; r++) {
-                for (let c = 0; c < GRID_COLS; c++) {
-                    const item = circuitGrid[r][c];
-                    const cx = c * cellW + cellW / 2;
-                    const cy = r * cellH + cellH / 2;
-
-                    // Draw Selected Box Highlight
-                    if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
-                        ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
-                        ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
-                        ctx.strokeStyle = '#F59E0B';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
-                    }
-
-                    if (!item) continue;
-
-                    const itemAngle = item.angle || 0;
-
-                    // Smart Wire Connection Drawing
-                    if (item.type === 'wire') {
-                        const conn = getNeighborConnections(r, c);
-                        ctx.strokeStyle = '#38BDF8';
-                        ctx.lineWidth = 4;
-
-                        let activeConnCount = (conn.N ? 1 : 0) + (conn.S ? 1 : 0) + (conn.E ? 1 : 0) + (conn.W ? 1 : 0);
-
-                        // If standalone wire or line
-                        if (activeConnCount === 0) {
-                            ctx.beginPath();
-                            if (itemAngle === 90 || itemAngle === 270) {
-                                ctx.moveTo(cx, cy - cellH / 2);
-                                ctx.lineTo(cx, cy + cellH / 2);
-                            } else {
-                                ctx.moveTo(cx - cellW / 2, cy);
-                                ctx.lineTo(cx + cellW / 2, cy);
-                            }
-                            ctx.stroke();
-                        } else {
-                            ctx.beginPath();
-                            if (conn.W) { ctx.moveTo(cx, cy); ctx.lineTo(cx - cellW / 2, cy); }
-                            if (conn.E) { ctx.moveTo(cx, cy); ctx.lineTo(cx + cellW / 2, cy); }
-                            if (conn.N) { ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - cellH / 2); }
-                            if (conn.S) { ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + cellH / 2); }
-                            ctx.stroke();
-
-                            if (activeConnCount >= 3 && wireCrossMode === 'connected') {
-                                ctx.fillStyle = '#EF4444';
-                                ctx.beginPath();
-                                ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-                                ctx.fill();
-                            } else if (activeConnCount === 4 && wireCrossMode === 'bridge') {
-                                ctx.strokeStyle = '#38BDF8';
-                                ctx.lineWidth = 3;
-                                ctx.beginPath();
-                                ctx.arc(cx, cy, 8, Math.PI, 0, false);
-                                ctx.stroke();
-                            }
-                        }
-                        continue;
-                    }
-
-                    // Component Drawing Logic
-                    ctx.save();
-                    ctx.translate(cx, cy);
-                    ctx.rotate((itemAngle * Math.PI) / 180);
-
-                    if (item.type === 'battery') {
-                        ctx.strokeStyle = '#38BDF8';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(-cellW / 2, 0); ctx.lineTo(cellW / 2, 0);
-                        ctx.stroke();
-
-                        ctx.fillStyle = '#1E293B';
-                        ctx.fillRect(-22, -14, 44, 28);
-                        ctx.strokeStyle = '#F59E0B';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(-22, -14, 44, 28);
-
-                        // Draw Positive (+) Long Line
-                        ctx.strokeStyle = '#EF4444';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(10, -10); ctx.lineTo(10, 10);
-                        ctx.stroke();
-
-                        // Draw Negative (-) Short Thick Line
-                        ctx.strokeStyle = '#3B82F6';
-                        ctx.lineWidth = 5;
-                        ctx.beginPath();
-                        ctx.moveTo(-10, -6); ctx.lineTo(-10, 6);
-                        ctx.stroke();
-
-                        // Polarities Labels (+ and -)
-                        ctx.fillStyle = '#EF4444';
-                        ctx.font = 'bold 12px font-mono';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('+', 18, 4);
-
-                        ctx.fillStyle = '#60A5FA';
-                        ctx.fillText('-', -18, 4);
-
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.font = 'bold 9px sans-serif';
-                        ctx.fillText(item.val + 'V', 0, 4);
-
-                    } else if (item.type === 'resistor') {
-                        ctx.strokeStyle = '#38BDF8';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(-cellW / 2, 0); ctx.lineTo(cellW / 2, 0);
-                        ctx.stroke();
-
-                        ctx.fillStyle = '#334155';
-                        ctx.fillRect(-22, -10, 44, 20);
-                        ctx.strokeStyle = '#94A3B8';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(-22, -10, 44, 20);
-
-                        // Resistor Color Bands
-                        ctx.fillStyle = '#EF4444'; ctx.fillRect(-14, -10, 4, 20);
-                        ctx.fillStyle = '#F59E0B'; ctx.fillRect(-6, -10, 4, 20);
-                        ctx.fillStyle = '#10B981'; ctx.fillRect(2, -10, 4, 20);
-
-                        ctx.fillStyle = '#F8FAFC';
-                        ctx.font = 'bold 10px font-mono';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(item.val + 'Ω', 0, 4);
-
-                    } else if (item.type === 'bulb') {
-                        ctx.strokeStyle = '#38BDF8';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(-cellW / 2, 0); ctx.lineTo(cellW / 2, 0);
-                        ctx.stroke();
-
-                        let pPower = solver.Itot * solver.Itot * item.val;
-                        let glowR = Math.min(30, 8 + pPower * 0.8);
-
-                        if (isSwitchOn && solver.Itot > 0.01) {
-                            let grad = ctx.createRadialGradient(0, 0, 2, 0, 0, glowR);
-                            grad.addColorStop(0, 'rgba(253, 224, 71, 0.9)');
-                            grad.addColorStop(1, 'rgba(253, 224, 71, 0)');
-                            ctx.fillStyle = grad;
-                            ctx.beginPath();
-                            ctx.arc(0, 0, glowR, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-
-                        ctx.fillStyle = (isSwitchOn && solver.Itot > 0.01) ? '#FEF08A' : '#475569';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 12, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.strokeStyle = '#E2E8F0';
-                        ctx.stroke();
-
-                        ctx.fillStyle = '#CBD5E1';
-                        ctx.font = '10px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('💡 ' + item.val + 'Ω', 0, 22);
-
-                    } else if (item.type === 'capacitor') {
-                        ctx.strokeStyle = '#38BDF8';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(-cellW / 2, 0); ctx.lineTo(cellW / 2, 0);
-                        ctx.stroke();
-
-                        ctx.strokeStyle = '#60A5FA';
-                        ctx.lineWidth = 4;
-                        ctx.beginPath();
-                        ctx.moveTo(-6, -14); ctx.lineTo(-6, 14);
-                        ctx.moveTo(6, -14); ctx.lineTo(6, 14);
-                        ctx.stroke();
-
-                        ctx.fillStyle = '#93C5FD';
-                        ctx.font = '10px font-mono';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('🪫 ' + item.val + 'µF', 0, 24);
-                    }
-                    ctx.restore();
-                }
-            }
-
-            // Draw Live Wire Drag Preview Path
-            if (isDraggingWire && wireStartCell && wireCurrentCell) {
-                ctx.strokeStyle = '#FACC15';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([6, 4]);
-                ctx.beginPath();
-
-                const sx = wireStartCell.c * cellW + cellW / 2;
-                const sy = wireStartCell.r * cellH + cellH / 2;
-                const ex = wireCurrentCell.c * cellW + cellW / 2;
-                const ey = wireCurrentCell.r * cellH + cellH / 2;
-
-                ctx.moveTo(sx, sy);
-                ctx.lineTo(ex, sy);
-                ctx.lineTo(ex, ey);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            // Animate Particles (Electron Flow e⁻ and/or Conventional Current Flow I)
-            if (isSwitchOn && solver.Itot > 0.01 && solver.activeLoop.length > 0) {
-                const speed = 0.006 * solver.Itot;
-                const len = solver.activeLoop.length;
-
-                electronParticles.forEach((p) => {
-                    p.progress = (p.progress + speed) % 1;
-
-                    // Calculate index along closed circuit path
-                    const eIndex = Math.floor(p.progress * len);
-                    const cIndex = Math.floor(((1 - p.progress) + 1) % 1 * len);
-
-                    // Reverse calculation if battery is rotated 180°
-                    const actualEIndex = solver.batteryReversed ? (len - 1 - eIndex) : eIndex;
-                    const actualCIndex = solver.batteryReversed ? eIndex : cIndex;
-
-                    const cellE = solver.activeLoop[actualEIndex % len];
-                    const cellC = solver.activeLoop[actualCIndex % len];
-
-                    // 1. Draw Electron Flow (Blue Particles e⁻)
-                    if ((flowMode === 'electron' || flowMode === 'both') && cellE) {
-                        const px = cellE.c * cellW + cellW / 2;
-                        const py = cellE.r * cellH + cellH / 2;
-
-                        ctx.fillStyle = '#06B6D4';
-                        ctx.shadowColor = '#22D3EE';
-                        ctx.shadowBlur = 8;
-                        ctx.beginPath();
-                        ctx.arc(px, py, 5, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.shadowBlur = 0;
-
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.font = 'bold 7px font-mono';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('e⁻', px, py + 2.5);
-                    }
-
-                    // 2. Draw Conventional Current Flow (Red/Yellow Pulsing Arrows I)
-                    if ((flowMode === 'current' || flowMode === 'both') && cellC) {
-                        const px = cellC.c * cellW + cellW / 2;
-                        const py = cellC.r * cellH + cellH / 2;
-
-                        ctx.fillStyle = '#EF4444';
-                        ctx.shadowColor = '#F87171';
-                        ctx.shadowBlur = 8;
-                        ctx.beginPath();
-                        ctx.arc(px, py, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.shadowBlur = 0;
-
-                        ctx.fillStyle = '#FEF08A';
-                        ctx.font = 'bold 8px font-mono';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('I', px, py + 2.5);
-                    }
-                });
-            }
-
-            animFrameId = requestAnimationFrame(drawCanvas);
-        }
-
-        function setupCanvasInteraction() {
-            const canvas = document.getElementById('circuitCanvas');
-            if (!canvas) return;
-
-            const getGridPos = (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const x = clientX - rect.left;
-                const y = clientY - rect.top;
-
-                const col = Math.floor(x / (canvas.width / GRID_COLS));
-                const row = Math.floor(y / (canvas.height / GRID_ROWS));
-
-                return {
-                    col: Math.max(0, Math.min(GRID_COLS - 1, col)),
-                    row: Math.max(0, Math.min(GRID_ROWS - 1, row))
-                };
-            };
-
-            const handleStart = (e) => {
-                hideContextMenu();
-                const pos = getGridPos(e);
-                selectedCell = { r: pos.row, c: pos.col };
-
-                if (activeTool === 'wire') {
-                    isDraggingWire = true;
-                    wireStartCell = { r: pos.row, c: pos.col };
-                    wireCurrentCell = { r: pos.row, c: pos.col };
-                }
-            };
-
-            const handleMove = (e) => {
-                if (!isDraggingWire) return;
-                const pos = getGridPos(e);
-                wireCurrentCell = { r: pos.row, c: pos.col };
-            };
-
-            const handleEnd = (e) => {
-                if (isDraggingWire && wireStartCell && wireCurrentCell) {
-                    const r1 = wireStartCell.r, c1 = wireStartCell.c;
-                    const r2 = wireCurrentCell.r, c2 = wireCurrentCell.c;
-
-                    const minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
-                    for (let c = minC; c <= maxC; c++) {
-                        if (!circuitGrid[r1][c]) {
-                            circuitGrid[r1][c] = { type: 'wire', val: 0, angle: 0 };
-                        }
-                    }
-
-                    const minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
-                    for (let r = minR; r <= maxR; r++) {
-                        if (!circuitGrid[r][c2]) {
-                            circuitGrid[r][c2] = { type: 'wire', val: 0, angle: 90 };
-                        }
-                    }
-
-                    showToast("전선이 연결되었습니다.");
-                    isDraggingWire = false;
-                    wireStartCell = null;
-                    wireCurrentCell = null;
-                    updateInspector();
-                    return;
-                }
-
-                if (!selectedCell) return;
-                const row = selectedCell.r;
-                const col = selectedCell.c;
-
-                if (activeTool === 'eraser') {
-                    circuitGrid[row][col] = null;
-                } else if (activeTool === 'battery') {
-                    circuitGrid[row][col] = { type: 'battery', val: 12, angle: 0 };
-                } else if (activeTool === 'resistor') {
-                    circuitGrid[row][col] = { type: 'resistor', val: 10, angle: 0 };
-                } else if (activeTool === 'bulb') {
-                    circuitGrid[row][col] = { type: 'bulb', val: 20, angle: 0 };
-                } else if (activeTool === 'capacitor') {
-                    circuitGrid[row][col] = { type: 'capacitor', val: 100, angle: 0 };
-                }
-
-                updateInspector();
-            };
-
-            canvas.addEventListener('mousedown', (e) => {
-                if (e.button === 2) return; // Ignore right clicks here
-                handleStart(e);
-            });
-            canvas.addEventListener('mousemove', handleMove);
-            canvas.addEventListener('mouseup', handleEnd);
-
-            // Right Click Context Menu Handler
-            canvas.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                const pos = getGridPos(e);
-                const item = circuitGrid[pos.row][pos.col];
-
-                selectedCell = { r: pos.row, c: pos.col };
-                contextCell = { r: pos.row, c: pos.col };
-                updateInspector();
-
-                if (item) {
-                    showContextMenu(e.clientX, e.clientY, item, pos);
-                } else {
-                    hideContextMenu();
-                }
-            });
-
-            canvas.addEventListener('touchstart', (e) => { handleStart(e); e.preventDefault(); }, { passive: false });
-            canvas.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, { passive: false });
-            canvas.addEventListener('touchend', (e) => { handleEnd(e); e.preventDefault(); }, { passive: false });
-        }
-
-        function showContextMenu(x, y, item, pos) {
-            const menu = document.getElementById('contextMenu');
-            document.getElementById('ctxTitle').textContent = item.type === 'battery' ? '건전지 설정' : (item.type === 'resistor' ? '저항 설정' : (item.type === 'bulb' ? '전구 설정' : '부품 설정'));
-            document.getElementById('ctxPos').textContent = `(${pos.col + 1},${pos.row + 1})`;
-
-            menu.style.left = `${Math.min(x, window.innerWidth - 180)}px`;
-            menu.style.top = `${Math.min(y, window.innerHeight - 200)}px`;
-            menu.classList.remove('hidden');
-        }
-
-        function hideContextMenu() {
-            document.getElementById('contextMenu').classList.add('hidden');
-        }
-
-        function ctxEditValue() {
-            if (!contextCell) return;
-            const item = circuitGrid[contextCell.r][contextCell.c];
-            if (!item) return;
-
-            hideContextMenu();
-
-            let promptMsg = "새 수치를 입력하세요:";
-            if (item.type === 'battery') promptMsg = "건전지 전압 (V)을 입력하세요:";
-            else if (item.type === 'resistor') promptMsg = "저항값 (Ω)을 입력하세요:";
-            else if (item.type === 'bulb') promptMsg = "전구 저항값 (Ω)을 입력하세요:";
-            else if (item.type === 'capacitor') promptMsg = "축전기 용량 (µF)을 입력하세요:";
-
-            const newVal = prompt(promptMsg, item.val);
-            if (newVal !== null && !isNaN(parseFloat(newVal)) && parseFloat(newVal) > 0) {
-                item.val = parseFloat(newVal);
-                updateInspector();
-                showToast(`수치가 ${item.val}로 변경되었습니다.`);
-            }
-        }
-
-        function ctxRotate(degrees) {
-            if (!contextCell) return;
-            rotateCompAt(contextCell.r, contextCell.c, degrees);
-            hideContextMenu();
-        }
-
-        function ctxDelete() {
-            if (!contextCell) return;
-            circuitGrid[contextCell.r][contextCell.c] = null;
-            selectedCell = null;
-            updateInspector();
-            hideContextMenu();
-            showToast("부품이 삭제되었습니다.");
-        }
-
-        function rotateCompAt(r, c, degrees) {
-            const item = circuitGrid[r][c];
-            if (item) {
-                item.angle = ((item.angle || 0) + degrees) % 360;
-                updateInspector();
-                showToast(`부품을 ${item.angle}° 로 회전하였습니다.`);
-            }
-        }
-
-        function rotateSelectedComp(degrees = 90) {
-            if (!selectedCell) return;
-            rotateCompAt(selectedCell.r, selectedCell.c, degrees);
-        }
-
-        function updateInspector() {
-            const placeholder = document.getElementById('inspectorPlaceholder');
-            const paramGroup = document.getElementById('paramGroup');
-            const typeBadge = document.getElementById('selectedCompType');
-            const sliderContainer = document.getElementById('sliderContainer');
-            const dirText = document.getElementById('compDirText');
-
-            if (!selectedCell) {
-                placeholder.classList.remove('hidden');
-                paramGroup.classList.add('hidden');
-                typeBadge.textContent = "선택 없음";
-                return;
-            }
-
-            const item = circuitGrid[selectedCell.r][selectedCell.c];
-            if (!item) {
-                placeholder.classList.remove('hidden');
-                paramGroup.classList.add('hidden');
-                typeBadge.textContent = "빈 칸";
-                return;
-            }
-
-            placeholder.classList.add('hidden');
-            paramGroup.classList.remove('hidden');
-
-            document.getElementById('compPosText').textContent = `Grid (${selectedCell.c + 1}, ${selectedCell.r + 1})`;
-            dirText.textContent = `${item.angle || 0}°`;
-
-            const slider = document.getElementById('paramSlider');
-            const label = document.getElementById('paramLabel');
-            const valText = document.getElementById('paramValText');
-
-            sliderContainer.classList.remove('hidden');
-
-            if (item.type === 'battery') {
-                typeBadge.textContent = "건전지 (DC)";
-                label.textContent = "전원 전압 (V):";
-                slider.min = 1; slider.max = 30; slider.step = 1; slider.value = item.val;
-                valText.textContent = item.val + ' V';
-            } else if (item.type === 'resistor' || item.type === 'bulb') {
-                typeBadge.textContent = item.type === 'resistor' ? "저항" : "전구";
-                label.textContent = "저항값 (Ω):";
-                slider.min = 1; slider.max = 100; slider.step = 1; slider.value = item.val;
-                valText.textContent = item.val + ' Ω';
-            } else if (item.type === 'capacitor') {
-                typeBadge.textContent = "축전기";
-                label.textContent = "전기용량 (µF):";
-                slider.min = 10; slider.max = 500; slider.step = 10; slider.value = item.val;
-                valText.textContent = item.val + ' µF';
-            } else {
-                typeBadge.textContent = "전선";
-                sliderContainer.classList.add('hidden');
-            }
-
-            slider.oninput = (e) => {
-                item.val = parseFloat(e.target.value);
-                if (item.type === 'battery') valText.textContent = item.val + ' V';
-                else if (item.type === 'capacitor') valText.textContent = item.val + ' µF';
-                else valText.textContent = item.val + ' Ω';
-            };
-        }
-
-        function deleteSelectedComp() {
-            if (!selectedCell) return;
-            circuitGrid[selectedCell.r][selectedCell.c] = null;
-            selectedCell = null;
-            updateInspector();
-            showToast("선택한 부품을 삭제하였습니다.");
-        }
-
-        function resizeCanvas() {
-            const canvas = document.getElementById('circuitCanvas');
-            if (!canvas || !canvas.parentElement) return;
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-
-        function selectStep(stepNum) {
-            document.querySelectorAll('.step-panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById('stepContent' + stepNum).classList.remove('hidden');
-
-            document.querySelectorAll('.step-tab-btn').forEach((btn, idx) => {
-                if (idx + 1 === stepNum) {
-                    btn.className = "step-tab-btn py-2 px-4 text-xs font-semibold border-b-2 border-amber-500 text-amber-600 dark:text-amber-400";
-                } else {
-                    btn.className = "step-tab-btn py-2 px-4 text-xs font-semibold text-stone-500 border-b-2 border-transparent hover:text-stone-800";
-                }
-            });
-        }
-
+<!-- ... existing code ... -->
         function renderPosts() {
             const list = document.getElementById('postsList');
+            if (!list) return;
             list.innerHTML = '';
             posts.forEach(p => {
                 const card = document.createElement('div');
@@ -1690,93 +459,21 @@
                     </div>
                     <h3 class="font-bold text-stone-800 dark:text-stone-200">${p.title}</h3>
                     <p class="text-stone-600 dark:text-stone-400">${p.content}</p>
+                    ${p.comment ? `<div class="p-2 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 rounded text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">💬 ${p.comment}</div>` : ''}
                 `;
                 list.appendChild(card);
             });
-        }
 
-        function openSubmitModal() { document.getElementById('submitModal').classList.remove('hidden'); }
-        function closeSubmitModal() { document.getElementById('submitModal').classList.add('hidden'); }
-
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const author = document.getElementById('postAuthor').value;
-            const title = document.getElementById('postTitle').value;
-            const content = document.getElementById('postContent').value;
-            const category = document.getElementById('postCategory').value;
-
-            const newPost = {
-                author, 
-                title, 
-                content,
-                category,
-                date: new Date().toISOString().split('T')[0],
-                createdAt: Date.now()
-            };
-
-            // Local optimistic update
-            posts.unshift(newPost);
-            renderPosts();
-            closeSubmitModal();
-
-            // Cloud Database sync
-            if (typeof window.savePostToDB === 'function') {
-                try {
-                    await window.savePostToDB(newPost);
-                    showToast("과제가 Cloud DB에 성공적으로 저장되었습니다!");
-                } catch (err) {
-                    showToast("과제가 저장되었습니다 (로컬 저장).");
-                }
-            } else {
-                showToast("과제가 등록되었습니다!");
+            if (isTeacherUnlocked) {
+                renderTeacherDashboard();
             }
-
-            e.target.reset();
         }
+<!-- ... existing code ... -->
+```
 
-        function downloadFile(filename, text) {
-            const element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-            element.setAttribute('download', filename);
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-            showToast(filename + " 다운로드 시작!");
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
-        }
-
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('#contextMenu') && !e.target.closest('#circuitCanvas')) {
-                hideContextMenu();
-            }
-        });
-
-        window.addEventListener('load', () => {
-            electronParticles = Array(35).fill(null).map(() => ({ progress: Math.random() }));
-
-            const toggleDark = () => document.documentElement.classList.toggle('dark');
-            document.getElementById('darkModeToggleMobile').addEventListener('click', toggleDark);
-            document.getElementById('darkModeToggleDesktop').addEventListener('click', toggleDark);
-
-            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('-translate-x-full');
-            });
-
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
-            setupCanvasInteraction();
-            selectTool('select');
-            loadPreset('series');
-            drawCanvas();
-            renderPosts();
-        });
-    </script>
-</body>
-</html>
+### Summary of Changes:
+1. **Teacher Navigation**: Added `📊 교사 대시보드` tab in the sidebar menu.
+2. **Access Security**: Includes a passcode authentication screen (`1234` default).
+3. **KPI Analytics**: Visualizes total reports, Q&As, unique participating students, and pending feedback counts.
+4. **Interactive Teacher Feedback**: Teachers can review, comment on, approve, or delete student reports and sync them back to the Board and Firestore.
+5. **CSV Data Export**: Enables exporting the complete student submission table as a spreadsheet (`.csv`).
