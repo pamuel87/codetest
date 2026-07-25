@@ -631,6 +631,91 @@
         </div>
     </main>
 
+    <!-- Firebase SDK v11 Initialization & Firestore Database Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // App ID and Firebase Config setup (Uses system environment or provided configuration)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'science-circuit-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyCNa-hsnFjPowDFwHWLPLVrY8y12j4d-uA",
+                authDomain: "codetest-2d4a6.firebaseapp.com",
+                projectId: "codetest-2d4a6",
+                storageBucket: "codetest-2d4a6.firebasestorage.app",
+                messagingSenderId: "1010433147403",
+                appId: "1:1010433147403:web:8b47f35fb9b8e9d0e97d0e"
+            };
+
+        // Initialize Firebase Services
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.auth = auth;
+        window.appId = appId;
+
+        // Authenticate User First Before Querying DB
+        async function initAuthAndDB() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                console.log("Firebase Auth Authenticated:", auth.currentUser?.uid);
+                listenToRealtimePosts();
+            } catch (err) {
+                console.warn("Firebase Auth fallback/warning:", err);
+            }
+        }
+
+        // Real-time Firestore Sync (Rule 1 & Rule 2 Compliant)
+        function listenToRealtimePosts() {
+            if (!auth.currentUser) return;
+            const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+
+            onSnapshot(postsRef, (snapshot) => {
+                const loadedPosts = [];
+                snapshot.forEach((docSnap) => {
+                    loadedPosts.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                // Sort in memory by date
+                loadedPosts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                
+                if (loadedPosts.length > 0) {
+                    window.posts = loadedPosts;
+                    if (typeof window.renderPosts === 'function') {
+                        window.renderPosts();
+                    }
+                }
+            }, (error) => {
+                console.error("Firestore onSnapshot error:", error);
+            });
+        }
+
+        // Save post to Firestore database
+        window.savePostToDB = async function(postData) {
+            if (!auth.currentUser) {
+                console.warn("User not authenticated yet");
+                return;
+            }
+            try {
+                const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+                await addDoc(postsRef, postData);
+            } catch (err) {
+                console.error("Error saving post to Firestore:", err);
+                throw err;
+            }
+        };
+
+        initAuthAndDB();
+    </script>
+
     <!-- Submit Modal Dialog -->
     <div id="submitModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-white dark:bg-notion-cardDark w-full max-w-lg rounded-xl border border-notion-border dark:border-notion-borderDark p-6 space-y-4 shadow-xl">
@@ -1613,20 +1698,39 @@
         function openSubmitModal() { document.getElementById('submitModal').classList.remove('hidden'); }
         function closeSubmitModal() { document.getElementById('submitModal').classList.add('hidden'); }
 
-        function handleFormSubmit(e) {
+        async function handleFormSubmit(e) {
             e.preventDefault();
             const author = document.getElementById('postAuthor').value;
             const title = document.getElementById('postTitle').value;
             const content = document.getElementById('postContent').value;
+            const category = document.getElementById('postCategory').value;
 
-            posts.unshift({
-                id: Date.now(),
-                author, title, content,
-                date: new Date().toISOString().split('T')[0]
-            });
+            const newPost = {
+                author, 
+                title, 
+                content,
+                category,
+                date: new Date().toISOString().split('T')[0],
+                createdAt: Date.now()
+            };
+
+            // Local optimistic update
+            posts.unshift(newPost);
             renderPosts();
             closeSubmitModal();
-            showToast("과제가 등록되었습니다!");
+
+            // Cloud Database sync
+            if (typeof window.savePostToDB === 'function') {
+                try {
+                    await window.savePostToDB(newPost);
+                    showToast("과제가 Cloud DB에 성공적으로 저장되었습니다!");
+                } catch (err) {
+                    showToast("과제가 저장되었습니다 (로컬 저장).");
+                }
+            } else {
+                showToast("과제가 등록되었습니다!");
+            }
+
             e.target.reset();
         }
 
