@@ -80,9 +80,14 @@
             <span>⚡</span>
             <span>회로 탐구 워크스페이스</span>
         </div>
-        <button onclick="toggleMobileSidebar()" class="p-1.5 rounded hover:bg-notion-hover dark:hover:bg-notion-hoverDark">
-            <i class="fa-solid fa-bars"></i>
-        </button>
+        <div class="flex items-center gap-2">
+            <button onclick="switchTab('teacher')" class="px-2.5 py-1 bg-indigo-600 text-white rounded font-bold text-xs flex items-center gap-1 shadow-sm">
+                <span>📊</span> 교사
+            </button>
+            <button onclick="toggleMobileSidebar()" class="p-1.5 rounded hover:bg-notion-hover dark:hover:bg-notion-hoverDark">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Sidebar Navigation -->
@@ -167,6 +172,9 @@
                 <span id="breadcrumbTitle" class="font-semibold text-notion-text dark:text-notion-textDark">탐구 개요 및 공지사항</span>
             </div>
             <div class="flex items-center space-x-3">
+                <button onclick="switchTab('teacher')" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors">
+                    <span>📊</span> 교사 대시보드 바로가기
+                </button>
                 <span class="inline-flex items-center gap-1 text-[11px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded font-medium">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> DB 연결됨
                 </span>
@@ -200,6 +208,20 @@
                         <div class="flex items-center"><span class="w-24 text-stone-400 font-medium">🛠️ 주요 탐구 도구:</span><span>자체 회로 Builder, 시뮬레이터</span></div>
                         <div class="flex items-center"><span class="w-24 text-stone-400 font-medium">📁 제출 기한:</span><span>수업 종료시까지</span></div>
                     </div>
+                </div>
+
+                <!-- Teacher Dashboard Quick Access Callout Card -->
+                <div class="p-4 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">📊</span>
+                        <div>
+                            <div class="font-bold text-indigo-900 dark:text-indigo-200 text-sm">교사 전용: 학생 참여 & 과제 관리 대시보드</div>
+                            <div class="text-stone-600 dark:text-stone-300 text-[11px] mt-0.5">학생 제출 과제 실시간 확인, 평가 피드백 전송 및 CSV 엑셀 다운로드 (비밀번호: <code class="bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded font-mono font-bold text-indigo-800 dark:text-indigo-200">1234</code>)</div>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('teacher')" class="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow transition-colors flex items-center gap-1.5 text-xs">
+                        <span>🔐</span> 교사 대시보드 접속
+                    </button>
                 </div>
 
                 <!-- Callout Box -->
