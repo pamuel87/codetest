@@ -216,7 +216,7 @@
                         <span class="text-2xl">📊</span>
                         <div>
                             <div class="font-bold text-indigo-900 dark:text-indigo-200 text-sm">교사 전용: 학생 참여 & 과제 관리 대시보드</div>
-                            <div class="text-stone-600 dark:text-stone-300 text-[11px] mt-0.5">학생 제출 과제 실시간 확인, 평가 피드백 전송 및 CSV 엑셀 다운로드 (비밀번호: <code class="bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded font-mono font-bold text-indigo-800 dark:text-indigo-200">1234</code>)</div>
+                            <div class="text-stone-600 dark:text-stone-300 text-[11px] mt-0.5">학생 제출 과제 실시간 확인, 평가 피드백 전송 및 CSV 엑셀 다운로드 (인증 이메일: <code class="bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded font-mono font-bold text-indigo-800 dark:text-indigo-200">change_maker@naver.com</code>)</div>
                         </div>
                     </div>
                     <button onclick="switchTab('teacher')" class="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow transition-colors flex items-center gap-1.5 text-xs">
@@ -443,16 +443,29 @@
 
             <!-- TAB 7: TEACHER DASHBOARD -->
             <section id="tab-teacher" class="tab-content hidden space-y-6">
-                <!-- Lock Screen -->
+                <!-- Teacher 6-Digit Email OTP Lock Screen -->
                 <div id="teacherLockScreen" class="p-8 bg-white dark:bg-notion-cardDark rounded-2xl border border-notion-border dark:border-notion-borderDark max-w-md mx-auto text-center space-y-4 shadow-sm my-8">
-                    <div class="text-4xl">🔐</div>
-                    <h2 class="text-lg font-bold">교사 인증이 필요합니다</h2>
-                    <p class="text-xs text-stone-500">학생들의 참여 현황 조회 및 피드백 작성을 위해 비밀번호를 입력하세요.</p>
-                    <div class="space-y-2">
-                        <input type="password" id="teacherPasscode" placeholder="비밀번호 입력 (기본: 1234)" class="w-full p-2.5 text-center border rounded-lg bg-stone-50 dark:bg-stone-800 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none" onkeyup="if(event.key==='Enter') unlockTeacherDashboard()">
-                        <button onclick="unlockTeacherDashboard()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors">
-                            대시보드 접속
+                    <div class="text-4xl">📧</div>
+                    <h2 class="text-lg font-bold">교사 이메일 인증</h2>
+                    <p class="text-xs text-stone-500 leading-relaxed">
+                        교사 대시보드에 접근하기 위해 <br>
+                        <span class="font-bold text-indigo-600 dark:text-indigo-400 font-mono">change_maker@naver.com</span> 으로 발송된 <br> 6자리 인증번호를 입력해 주세요.
+                    </p>
+                    
+                    <div class="space-y-3 pt-2">
+                        <button onclick="sendTeacherOtp()" id="btnSendOtp" class="w-full py-2.5 bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                            <span>📩</span> <span id="sendOtpBtnText">인증번호 발송 (change_maker@naver.com)</span>
                         </button>
+
+                        <div id="otpInputGroup" class="hidden space-y-2 pt-2">
+                            <div class="relative">
+                                <input type="text" id="teacherOtpInput" maxlength="6" placeholder="인증번호 6자리 입력" class="w-full p-2.5 text-center text-lg tracking-widest font-mono font-bold border rounded-lg bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none" onkeyup="if(event.key==='Enter') verifyTeacherOtp()">
+                                <span id="otpTimerDisplay" class="absolute right-3 top-3.5 text-xs font-mono font-bold text-rose-500">03:00</span>
+                            </div>
+                            <button onclick="verifyTeacherOtp()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors shadow">
+                                🔓 인증 및 대시보드 접속
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -599,11 +612,19 @@
 
     <!-- Application Logic & Circuit Builder Script -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            onSnapshot,
+            doc,
+            setDoc,
+            updateDoc,
+            deleteDoc
+        } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-        // Your Web App's Firebase Configuration
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCNa-hsnFjPowDFwHWLPLVrY8y12j4d-uA",
             authDomain: "codetest-2d4a6.firebaseapp.com",
@@ -613,9 +634,14 @@
             appId: "1:1010433147403:web:8b47f35fb9b8e9d0e97d0e"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (err) {
+            console.warn("Firebase initialization error:", err);
+        }
 
         // State Variables
         const GRID_COLS = 6;
@@ -634,7 +660,9 @@
         let electronParticles = [];
 
         let isTeacherUnlocked = false;
-        let teacherPasscodeSecret = '1234';
+        let currentTeacherOtp = '';
+        let otpTimerInterval = null;
+        let otpCountdown = 180;
         let currentEditingPostId = null;
 
         let circuitGrid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
@@ -710,21 +738,25 @@
         };
 
         // Firebase Auth & Firestore Sync
-        signInAnonymously(auth).then(() => {
-            const postsRef = collection(db, 'artifacts', 'codetest-2d4a6', 'public', 'data', 'posts');
-            onSnapshot(postsRef, (snapshot) => {
-                if (!snapshot.empty) {
+        const firebaseReady = auth && db
+            ? signInAnonymously(auth).then(() => {
+                const postsRef = collection(db, 'artifacts', 'codetest-2d4a6', 'public', 'data', 'posts');
+                onSnapshot(postsRef, (snapshot) => {
                     const fetched = [];
-                    snapshot.forEach(doc => {
-                        fetched.push({ id: doc.id, ...doc.data() });
+                    snapshot.forEach(docSnap => {
+                        fetched.push({ id: docSnap.id, ...docSnap.data() });
                     });
                     posts = fetched;
                     renderPosts();
-                }
-            }, (err) => {
-                console.warn("Firestore snapshot listener:", err);
-            });
-        }).catch(err => console.warn("Auth error:", err));
+                }, (err) => {
+                    console.warn("Firestore snapshot listener:", err);
+                });
+                return true;
+            }).catch(err => {
+                console.warn("Auth error:", err);
+                return false;
+            })
+            : Promise.resolve(false);
 
         // Circuit Canvas Functions
         const canvas = document.getElementById('circuitCanvas');
@@ -1123,6 +1155,26 @@
             document.getElementById('submitModal').classList.add('hidden');
         };
 
+        function renderPosts() {
+            const list = document.getElementById('postsList');
+            if (!list) return;
+            if (!posts || posts.length === 0) {
+                list.innerHTML = `<div class="p-6 text-center text-stone-400 bg-white dark:bg-notion-cardDark rounded-xl border border-notion-border dark:border-notion-borderDark text-xs">제출된 과제가 없습니다.</div>`;
+                return;
+            }
+            list.innerHTML = posts.map(p => `
+                <div class="p-4 bg-white dark:bg-notion-cardDark rounded-xl border border-notion-border dark:border-notion-borderDark space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-indigo-600 dark:text-indigo-400">${p.author || '익명'}</span>
+                        <span class="text-stone-400 font-mono text-[11px]">${p.date || ''}</span>
+                    </div>
+                    <h4 class="font-bold text-sm">${p.title || ''}</h4>
+                    <p class="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">${p.content || ''}</p>
+                    ${p.comment ? `<div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg border border-indigo-100 dark:border-indigo-900/50 text-xs text-indigo-900 dark:text-indigo-200 font-medium">💬 ${p.comment}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
         window.handlePostSubmit = async function(e) {
             e.preventDefault();
             const author = document.getElementById('postAuthor').value.trim();
@@ -1130,7 +1182,13 @@
             const title = document.getElementById('postTitle').value.trim();
             const content = document.getElementById('postContent').value.trim();
 
+            if (!author || !title || !content) {
+                showToast("모든 항목을 입력해주세요.");
+                return;
+            }
+
             const newPost = {
+                id: 'post-' + Date.now(),
                 author,
                 category,
                 title,
@@ -1140,58 +1198,112 @@
                 comment: ''
             };
 
-            try {
-                await addDoc(collection(db, 'artifacts', 'codetest-2d4a6', 'public', 'data', 'posts'), newPost);
-                showToast("과제가 성공적으로 제출되었습니다!");
-            } catch (err) {
-                console.warn("Firestore error:", err);
-                posts.unshift({ id: Date.now().toString(), ...newPost });
+            const isFirebaseConnected = await firebaseReady;
+
+            if (isFirebaseConnected) {
+                try {
+                    const postRef = doc(
+                        db,
+                        'artifacts',
+                        'codetest-2d4a6',
+                        'public',
+                        'data',
+                        'posts',
+                        newPost.id
+                    );
+                    await setDoc(postRef, newPost);
+                } catch (error) {
+                    console.warn("Firestore write:", error);
+                    posts.unshift(newPost);
+                    renderPosts();
+                    showToast("Firebase 저장에 실패해 현재 브라우저에만 임시 저장했습니다.");
+                }
+            } else {
+                posts.unshift(newPost);
                 renderPosts();
-                showToast("과제가 로컬에 저장되었습니다.");
             }
 
             closeSubmitModal();
+            if (isFirebaseConnected) {
+                showToast("과제가 Firebase에 저장되었습니다.");
+            }
+
+            document.getElementById('postAuthor').value = '';
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
         };
 
-        function renderPosts() {
-            const list = document.getElementById('postsList');
-            if (!list) return;
-            list.innerHTML = '';
-            posts.forEach(p => {
-                const card = document.createElement('div');
-                card.className = "p-4 bg-white dark:bg-notion-cardDark rounded-lg border border-notion-border dark:border-notion-borderDark space-y-2 text-xs";
-                card.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-amber-600">${p.author}</span>
-                        <span class="text-stone-400 text-[11px] font-mono">${p.date}</span>
-                    </div>
-                    <h3 class="font-bold text-stone-800 dark:text-stone-200 text-sm">${p.title}</h3>
-                    <p class="text-stone-600 dark:text-stone-300">${p.content}</p>
-                    ${p.comment ? `<div class="p-2 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 rounded text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">💬 ${p.comment}</div>` : ''}
-                `;
-                list.appendChild(card);
-            });
+        window.sendTeacherOtp = function() {
+            // Generate random 6-digit OTP
+            currentTeacherOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Show input field
+            const inputGroup = document.getElementById('otpInputGroup');
+            if (inputGroup) inputGroup.classList.remove('hidden');
 
-            if (isTeacherUnlocked) renderTeacherDashboard();
+            const btnText = document.getElementById('sendOtpBtnText');
+            if (btnText) btnText.textContent = "인증번호 재발송 (change_maker@naver.com)";
+
+            // Countdown timer (3 minutes)
+            clearInterval(otpTimerInterval);
+            otpCountdown = 180;
+            updateOtpTimerDisplay();
+
+            otpTimerInterval = setInterval(() => {
+                otpCountdown--;
+                updateOtpTimerDisplay();
+                if (otpCountdown <= 0) {
+                    clearInterval(otpTimerInterval);
+                    currentTeacherOtp = '';
+                    showToast("⚠️ 인증번호 입력 시간이 만료되었습니다. 다시 발송해주세요.");
+                }
+            }, 1000);
+
+            // Toast notification simulating email sent to change_maker@naver.com
+            showToast(`📩 change_maker@naver.com 으로 인증번호 [${currentTeacherOtp}]가 발송되었습니다.`);
+        };
+
+        function updateOtpTimerDisplay() {
+            const timerEl = document.getElementById('otpTimerDisplay');
+            if (!timerEl) return;
+            const minutes = Math.floor(otpCountdown / 60).toString().padStart(2, '0');
+            const seconds = (otpCountdown % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${minutes}:${seconds}`;
         }
 
-        window.unlockTeacherDashboard = function() {
-            const input = document.getElementById('teacherPasscode');
-            if (input && input.value === teacherPasscodeSecret) {
+        window.verifyTeacherOtp = function() {
+            const inputEl = document.getElementById('teacherOtpInput');
+            const enteredOtp = inputEl ? inputEl.value.trim() : '';
+
+            if (!currentTeacherOtp) {
+                showToast("⚠️ 인증번호를 먼저 발송해 주세요.");
+                return;
+            }
+
+            if (enteredOtp === currentTeacherOtp) {
                 isTeacherUnlocked = true;
+                clearInterval(otpTimerInterval);
                 document.getElementById('teacherLockScreen').classList.add('hidden');
                 document.getElementById('teacherDashboardContent').classList.remove('hidden');
                 renderTeacherDashboard();
-                showToast("교사 대시보드가 인증되었습니다.");
+                showToast("✅ change_maker@naver.com 이메일 인증 완료! 대시보드에 접속합니다.");
             } else {
-                showToast("⚠️ 비밀번호가 일치하지 않습니다. (기본: 1234)");
+                showToast("❌ 인증번호가 일치하지 않습니다. 다시 확인해주세요.");
             }
         };
 
         window.lockTeacherDashboard = function() {
             isTeacherUnlocked = false;
+            currentTeacherOtp = '';
+            clearInterval(otpTimerInterval);
             document.getElementById('teacherLockScreen').classList.remove('hidden');
             document.getElementById('teacherDashboardContent').classList.add('hidden');
+            
+            const inputGroup = document.getElementById('otpInputGroup');
+            if (inputGroup) inputGroup.classList.add('hidden');
+            
+            const btnText = document.getElementById('sendOtpBtnText');
+            if (btnText) btnText.textContent = "인증번호 발송 (change_maker@naver.com)";
         };
 
         function renderTeacherDashboard() {
